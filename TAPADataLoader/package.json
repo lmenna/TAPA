@@ -1,0 +1,27 @@
+{
+  "name": "TipsDataLoader",
+  "version": "1.0.0",
+  "description": "Data loaders for TiPs application.",
+  "main": "app.js",
+  "scripts": {
+    "test": "mocha --timeout 20000 --require @babel/register",
+    "start": "node bin/dev",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && mkdir dist && babel src -s -d dist",
+    "prod": "source SetMongoEnv.sh && npm run build && node bin/prod"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/cli": "^7.1.5",
+    "@babel/core": "^7.1.6",
+    "@babel/polyfill": "^7.0.0",
+    "@babel/preset-env": "^7.1.6",
+    "@babel/register": "^7.0.0",
+    "@google-cloud/bigquery": "^2.0.1",
+    "chai": "^4.2.0",
+    "mocha": "^5.2.0",
+    "mongodb": "^2.0.55"
+  }
+}

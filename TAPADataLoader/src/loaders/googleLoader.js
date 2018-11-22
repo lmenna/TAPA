@@ -1,45 +1,26 @@
-// Got this using npm install --save @google-cloud/bigquery
-const {BigQuery} = require('@google-cloud/bigquery');
-
-// SQL to run on BigQuery.  Will return the daily Ethereum transaction counts.
-// It runs using the time interval from current time back 200 Hours = 8.33 days
-var query = "select CAST(CEILING(UNIX_MILLIS(blocks.timestamp)/(1000*60*60*24)) as INT64) as IntDaysFrom19700101,"
-query += "sum(blocks.transaction_count) as Transactions,";
-query += "min(blocks.timestamp) as MinTimestamp,";
-query += "max(blocks.timestamp) as MaxTimestamp,";
-query += "min(UNIX_MILLIS(blocks.timestamp)) as MinUnixTimestamp,";
-query += "max(UNIX_MILLIS(blocks.timestamp)) as MaxUnixTimestamp,";
-query += "min(blocks.number) as MinBlockNumber,";
-query += "max(blocks.number) as MaxBlockNumber,";
-query += "sum(blocks.difficulty) as Difficulty ";
-query += "from `bigquery-public-data.ethereum_blockchain.blocks` as blocks ";
-query += "where blocks.number != 0 ";
-query += "and blocks.timestamp > TIMESTAMP_SUB(current_timestamp, INTERVAL 200 HOUR) ";
-query += "group by IntDaysFrom19700101 ";
-query += "order by IntDaysFrom19700101 DESC";
-
-/* getQuery()
- * desc: returns the query string used to retrieve data from BigQuery
+/* googleLoader.js
+ * desc: Runs queries against the google BigQuery public data sets
  *
  */
-function getQuery() {
-  return(query);
-}
+
+// Got this using npm install --save @google-cloud/bigquery
+const {BigQuery} = require('@google-cloud/bigquery');
 
 /* getBigQueryData(query)
  * desc: Run the BigQuery using async and await execution model.
  * param: String with the query to run.
  */
-async function getBigQueryData(query)
+async function runBigQuery(queryToRun)
 {
   const bigquery2 = new BigQuery({
     projectId: 'eth-testing-221913',
     keyFilename: '/Users/yglm/eth-testing-221913-87aaade4d104.json'
   });
 
+  console.log("Running Query:", queryToRun);
   var resultSet = {
     header: {
-      query: query,
+      query: queryToRun,
       rowCount: 0,
       errorCode: 0,
       errorMsg: ""
@@ -49,7 +30,7 @@ async function getBigQueryData(query)
   var rowCount = 0;
 
   let promise = new Promise((resolve, reject) => {
-    bigquery2.createQueryStream(query)
+    bigquery2.createQueryStream(queryToRun)
       .on('error', console.error)
       .on('data', function(row) {
         resultSet.data.push(row);
@@ -65,18 +46,37 @@ async function getBigQueryData(query)
     return(resultSet);
 };
 
-/* TestQuery()
+/* getBigQueryData()
  * desc: async Wrapper function to call into getBigQueryData() and wait for the result.
  *
  */
-async function TestQuery() {
+async function getBigQueryData() {
+
+  // SQL to run on BigQuery.  Will return the daily Ethereum transaction counts.
+  // It runs using the time interval from current time back 200 Hours = 8.33 days
+  var query = "select CAST(CEILING(UNIX_MILLIS(blocks.timestamp)/(1000*60*60*24)) as INT64) as IntDaysFrom19700101,"
+  query += "sum(blocks.transaction_count) as Transactions,";
+  query += "min(blocks.timestamp) as MinTimestamp,";
+  query += "max(blocks.timestamp) as MaxTimestamp,";
+  query += "min(UNIX_MILLIS(blocks.timestamp)) as MinUnixTimestamp,";
+  query += "max(UNIX_MILLIS(blocks.timestamp)) as MaxUnixTimestamp,";
+  query += "min(blocks.number) as MinBlockNumber,";
+  query += "max(blocks.number) as MaxBlockNumber,";
+  query += "sum(blocks.difficulty) as Difficulty ";
+  query += "from `bigquery-public-data.ethereum_blockchain.blocks` as blocks ";
+  query += "where blocks.number != 0 ";
+  query += "and blocks.timestamp > TIMESTAMP_SUB(current_timestamp, INTERVAL 200 HOUR) ";
+  query += "group by IntDaysFrom19700101 ";
+  query += "order by IntDaysFrom19700101 DESC";
+
   var result;
   try {
-    result = await getBigQueryData(query);
+    result = await runBigQuery(query);
   } catch(e) {
     console.log("Error:", e);
   }
   console.log("Query result:", result);
+  return(result);
 }
 
-export {getBigQueryData, getQuery}
+export {getBigQueryData}

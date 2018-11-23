@@ -4,7 +4,7 @@
   "description": "Data loaders for TiPs application.",
   "main": "app.js",
   "scripts": {
-    "test": "mocha --timeout 20000 --require @babel/register",
+    "test": "source SetMongoEnv.sh && mocha --timeout 20000 --require @babel/register",
     "start": "node bin/dev",
     "clean": "rm -rf dist",
     "build": "npm run clean && mkdir dist && babel src -s -d dist",

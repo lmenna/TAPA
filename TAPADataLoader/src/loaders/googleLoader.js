@@ -17,7 +17,7 @@ async function runBigQuery(queryToRun)
     keyFilename: '/Users/yglm/eth-testing-221913-87aaade4d104.json'
   });
 
-  console.log("Running Query:", queryToRun);
+  console.log("Running google BigQuery:", queryToRun);
   var resultSet = {
     header: {
       query: queryToRun,
@@ -75,7 +75,6 @@ async function getBigQueryData() {
   } catch(e) {
     console.log("Error:", e);
   }
-  console.log("Query result:", result);
   return(result);
 }
 

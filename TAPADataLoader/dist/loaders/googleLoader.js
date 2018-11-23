@@ -39,7 +39,7 @@ function _runBigQuery() {
               projectId: 'eth-testing-221913',
               keyFilename: '/Users/yglm/eth-testing-221913-87aaade4d104.json'
             });
-            console.log("Running Query:", queryToRun);
+            console.log("Running google BigQuery:", queryToRun);
             resultSet = {
               header: {
                 query: queryToRun,
@@ -127,10 +127,9 @@ function _getBigQueryData() {
             console.log("Error:", _context2.t0);
 
           case 23:
-            console.log("Query result:", result);
             return _context2.abrupt("return", result);
 
-          case 25:
+          case 24:
           case "end":
             return _context2.stop();
         }

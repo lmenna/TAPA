@@ -5,6 +5,6 @@ import {getBigQueryData} from "../src/loaders/googleLoader";
 describe("Google BigQuery Data Loader", function(){
   it("should return some data", async function() {
     var result = await getBigQueryData();
-    assert.equal(8, result.data.length);
+    assert.isAtLeast(result.data.length, 1);
   });
 });

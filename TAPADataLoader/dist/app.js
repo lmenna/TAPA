@@ -6,6 +6,8 @@ var _googleLoader = require("./loaders/googleLoader");
 
 var _mongodb = require("mongodb");
 
+var _dbUtils = require("./utils/dbUtils");
+
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
 
 function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
@@ -17,10 +19,9 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
 function readGoogleData() {
   return _readGoogleData.apply(this, arguments);
 }
-/* writeResultsToMongo()
- * desc: Writes results from the google BigQuery into MongoDB on the cloud
- * param: results - the formatted big query results.
- *
+/* formatResults(results)
+ * desc: Take the raw results from BigQuery and formats it for writting to MongoDB
+ * param: results Raw data from BigQuery
  */
 
 
@@ -60,81 +61,14 @@ function _readGoogleData() {
   return _readGoogleData.apply(this, arguments);
 }
 
-function writeResultsToMongo(_x) {
-  return _writeResultsToMongo.apply(this, arguments);
-}
-/* readFromMongo()
- * desc: Reads previously stored results from MongoDB
- *
- */
-
-
-function _writeResultsToMongo() {
-  _writeResultsToMongo = _asyncToGenerator(
-  /*#__PURE__*/
-  regeneratorRuntime.mark(function _callee2(results) {
-    var url;
-    return regeneratorRuntime.wrap(function _callee2$(_context2) {
-      while (1) {
-        switch (_context2.prev = _context2.next) {
-          case 0:
-            url = "mongodb://" + process.env.mongoU + ":" + process.env.mongoP + "@" + process.env.host + "/ethereum";
-            console.log("Connect to Mongo");
-
-            _mongodb.MongoClient.connect(url, function (err, db) {
-              if (err) {
-                console.log('Unable to connect to the DB server', err);
-              } else {
-                console.log('Connection established');
-
-                try {
-                  var collection = db.collection('marketdata.eth_transactions'); // await collection.insert({"name": "value"});
-
-                  db.collection("marketdata.eth_transactions").insertOne(results, function (err, res) {
-                    if (err) throw err;
-                    console.log("Result was inserted");
-                    db.close();
-                  });
-                } catch (e) {
-                  console.log("Error:", e);
-                }
-              }
-            });
-
-          case 3:
-          case "end":
-            return _context2.stop();
-        }
-      }
-    }, _callee2, this);
-  }));
-  return _writeResultsToMongo.apply(this, arguments);
-}
-
-function readFromMongo() {
-  var url = "mongodb://" + process.env.mongoU + ":" + process.env.mongoP + "@" + process.env.host + "/ethereum";
-
-  _mongodb.MongoClient.connect(url, function (err, db) {
-    if (err) {
-      console.log('Unable to connect to the DB server', err);
-    } else {
-      console.log('Connection established');
-      var collection = db.collection("marketdata.eth_transactions");
-      collection.find({}).toArray(function (err, result) {
-        if (err) {
-          console.log("Error retrieving data. ", err);
-        } else if (result.length) {
-          result.map(function (item) {
-            console.log(item);
-          });
-        } else {
-          console.log("No documents found");
-        }
-
-        db.close();
-      });
-    }
-  });
+function formatResults(results) {
+  // Get block with the most recent data.  Copy some of this info into the top of the object.
+  results.MaxDaysFrom19700101 = results.data[0].IntDaysFrom19700101;
+  results.MaxTimestamp = new Date(results.data[0].MaxTimestamp.value);
+  results.MaxBlockNumber = results.data[0].MaxBlockNumber;
+  console.log("MaxDaysFrom19700101:", results.MaxDaysFrom19700101);
+  console.log("MaxTimestamp:", results.MaxTimestamp);
+  console.log("MaxBlockNumber:", results.MaxBlockNumber);
 }
 
 function dataLoadAndSave() {
@@ -144,31 +78,34 @@ function dataLoadAndSave() {
 function _dataLoadAndSave() {
   _dataLoadAndSave = _asyncToGenerator(
   /*#__PURE__*/
-  regeneratorRuntime.mark(function _callee3() {
+  regeneratorRuntime.mark(function _callee2() {
     var results;
-    return regeneratorRuntime.wrap(function _callee3$(_context3) {
+    return regeneratorRuntime.wrap(function _callee2$(_context2) {
       while (1) {
-        switch (_context3.prev = _context3.next) {
+        switch (_context2.prev = _context2.next) {
           case 0:
-            _context3.next = 2;
+            _context2.next = 2;
             return readGoogleData();
 
           case 2:
-            results = _context3.sent;
+            results = _context2.sent;
 
             if (results === undefined) {
               console.log("No data was returned from BigQuery");
             } else if (results.data.length > 0) {
-              console.log("Got good results. Write them to MongoDB");
-              writeResultsToMongo(results);
+              console.log("Got good results. Number of records:", results.data.length);
+              formatResults(results);
+              (0, _dbUtils.writeResultsToMongo)(results);
+            } else {
+              console.log("BigQuery worked but results.data had no rows.");
             }
 
           case 4:
           case "end":
-            return _context3.stop();
+            return _context2.stop();
         }
       }
-    }, _callee3, this);
+    }, _callee2, this);
   }));
   return _dataLoadAndSave.apply(this, arguments);
 }

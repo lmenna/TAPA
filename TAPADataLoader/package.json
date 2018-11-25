@@ -22,6 +22,7 @@
     "@google-cloud/bigquery": "^2.0.1",
     "chai": "^4.2.0",
     "mocha": "^5.2.0",
-    "mongodb": "^2.0.55"
+    "mongodb": "^2.0.55",
+    "request": "^2.88.0"
   }
 }

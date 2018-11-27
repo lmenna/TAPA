@@ -27,7 +27,7 @@ import { MongoClient } from 'mongodb';
  * param: dataToWrite - the json block to write to MongoDB.
  *
  */
-async function writeResultsToMongo(dataToWrite) {
+async function writeResultsToMongo(dataToWrite, targetCollection) {
 
   var url = "mongodb://" + process.env.mongoU +":"+ process.env.mongoP + "@" + process.env.host + "/ethereum";
   var client;
@@ -35,10 +35,10 @@ async function writeResultsToMongo(dataToWrite) {
   try {
     client = await MongoClient.connect(url, { useNewUrlParser: true });
     db = client.db("ethereum");
-    await db.collection("marketdata.eth_transactions").insertOne(dataToWrite);
+    await db.collection(targetCollection).insertOne(dataToWrite);
   }
   catch(err) {
-    console.log("Error writting to DB:", err);
+    console.log("Error writing to DB:", err);
   }
   finally {
       client.close();

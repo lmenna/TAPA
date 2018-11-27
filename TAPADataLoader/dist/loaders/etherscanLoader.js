@@ -28,7 +28,6 @@ function _loadPricingData() {
       while (1) {
         switch (_context.prev = _context.next) {
           case 0:
-            console.log("request.get(urlForPrices, function (error, response, body))");
             return _context.abrupt("return", new Promise(function (resolve, reject) {
               (0, _request.default)({
                 uri: urlForPrices,
@@ -38,7 +37,6 @@ function _loadPricingData() {
                 maxRedirects: 10
               }, function (error, response, body) {
                 if (!error && response.statusCode === 200) {
-                  console.log(body.substring(1, 100));
                   resolve(body);
                 } else {
                   reject(error);
@@ -46,7 +44,7 @@ function _loadPricingData() {
               });
             }));
 
-          case 2:
+          case 1:
           case "end":
             return _context.stop();
         }

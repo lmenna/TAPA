@@ -8,6 +8,26 @@ import {getQuery, getBigQueryData} from "./loaders/googleLoader";
 // npm install mongodb --save-dev
 import { MongoClient } from 'mongodb';
 import { writeResultsToMongo } from "./utils/dbUtils"
+import { loadPricingData } from "./loaders/etherscanLoader";
+import { loadCoinmetricsFile } from "./loaders/coinmetricsLoader";
+
+// Data file where the coinmetrics data can be found.
+const dataDir = "./data/";
+const fileToProcess = dataDir + "all.zip";
+// Crypocurrencies to process from the coinmetrics dataset.
+const tickersToSelect = [
+  "eth",
+  "btc",
+  "xem"
+];
+// Fields to load from the coinmetrics data set.
+const fieldToSelect = [
+  "date",
+  "txVolume(USD)",
+  "adjustedTxVolume(USD)",
+  "txCount",
+  "price(USD)"
+];
 
 /* LoadGoogleDataIntoMongo()
  * desc: Gets data from BigQuery, formats the data and saves it to MongoDB
@@ -39,6 +59,34 @@ function formatResults(results) {
   console.log("MaxBlockNumber:", results.MaxBlockNumber);
 }
 
+//var csv is the CSV file with headers
+function csvJSON(csv){
+
+  var lines=csv.split("\n");
+  var result = [];
+  var headers=lines[0].split(",");
+  for(var i=1;i<lines.length;i++){
+      var obj = {};
+      var currentline=lines[i].split(",");
+      for(var j=0;j<headers.length;j++){
+          obj[headers[j]] = currentline[j];
+      }
+      result.push(obj);
+  }
+  //return result; //JavaScript object
+  return({"data" : result}); //JSON
+}
+
+function formatPricingData(pricingData) {
+
+  var pricingJSON = csvJSON(pricingData.replace(/['"]+/g, '').replace(/['\r]+/g, ''));
+  // Need and integer number of days from 19700101
+  // CEILING(UNIX_MILLIS(blocks.timestamp)/(60*60*24))
+  pricingJSON.data.map(item => {
+    item.IntDaysFrom19700101 = item.UnixTimeStamp/(60*60*24);
+  });
+  return(pricingJSON);
+}
 
 async function dataLoadAndSave() {
   var results = await readGoogleData();
@@ -48,11 +96,25 @@ async function dataLoadAndSave() {
   else if (results.data.length > 0) {
     console.log("Got good results. Number of records:", results.data.length);
     formatResults(results);
-    writeResultsToMongo(results);
+    writeResultsToMongo(results, "marketdata.eth_transactions");
+    var pricingData = await loadPricingData();
+    var pricingJSON = formatPricingData(pricingData);
+    console.log(pricingJSON);
+    writeResultsToMongo(pricingJSON, "marketdata.eth_prices");
   }
   else {
     console.log("BigQuery worked but results.data had no rows.")
   }
 }
 
-dataLoadAndSave();
+async function processCoinmetrics() {
+  tickersToSelect.map(async(item) => {
+    var ticker = item;
+    var coinmetricsData = await loadCoinmetricsFile(fileToProcess, ticker, fieldToSelect);
+    writeResultsToMongo(coinmetricsData, "marketdata.transaction_prices")
+  });
+}
+
+processCoinmetrics().then(res => res).catch(err => console.log("err:", err));
+
+// dataLoadAndSave();

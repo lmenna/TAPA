@@ -66,14 +66,14 @@ function _getMostRecentETHData() {
   return _getMostRecentETHData.apply(this, arguments);
 }
 
-function writeResultsToMongo(_x) {
+function writeResultsToMongo(_x, _x2) {
   return _writeResultsToMongo.apply(this, arguments);
 }
 
 function _writeResultsToMongo() {
   _writeResultsToMongo = _asyncToGenerator(
   /*#__PURE__*/
-  regeneratorRuntime.mark(function _callee2(dataToWrite) {
+  regeneratorRuntime.mark(function _callee2(dataToWrite, targetCollection) {
     var url, client, db;
     return regeneratorRuntime.wrap(function _callee2$(_context2) {
       while (1) {
@@ -90,7 +90,7 @@ function _writeResultsToMongo() {
             client = _context2.sent;
             db = client.db("ethereum");
             _context2.next = 8;
-            return db.collection("marketdata.eth_transactions").insertOne(dataToWrite);
+            return db.collection(targetCollection).insertOne(dataToWrite);
 
           case 8:
             _context2.next = 13;
@@ -99,7 +99,7 @@ function _writeResultsToMongo() {
           case 10:
             _context2.prev = 10;
             _context2.t0 = _context2["catch"](1);
-            console.log("Error writting to DB:", _context2.t0);
+            console.log("Error writing to DB:", _context2.t0);
 
           case 13:
             _context2.prev = 13;

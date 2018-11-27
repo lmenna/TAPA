@@ -108,33 +108,33 @@ function _getBigQueryData() {
             query += "max(blocks.number) as MaxBlockNumber,";
             query += "sum(blocks.difficulty) as Difficulty ";
             query += "from `bigquery-public-data.ethereum_blockchain.blocks` as blocks ";
-            query += "where blocks.number != 0 ";
-            query += "and blocks.timestamp > TIMESTAMP_SUB(current_timestamp, INTERVAL 200 HOUR) ";
+            query += "where blocks.number != 0 "; //  query += "and blocks.timestamp > TIMESTAMP_SUB(current_timestamp, INTERVAL 200 HOUR) ";
+
             query += "group by IntDaysFrom19700101 ";
             query += "order by IntDaysFrom19700101 DESC";
-            _context2.prev = 14;
-            _context2.next = 17;
+            _context2.prev = 13;
+            _context2.next = 16;
             return runBigQuery(query);
 
-          case 17:
+          case 16:
             result = _context2.sent;
-            _context2.next = 23;
+            _context2.next = 22;
             break;
 
-          case 20:
-            _context2.prev = 20;
-            _context2.t0 = _context2["catch"](14);
+          case 19:
+            _context2.prev = 19;
+            _context2.t0 = _context2["catch"](13);
             console.log("Error:", _context2.t0);
 
-          case 23:
+          case 22:
             return _context2.abrupt("return", result);
 
-          case 24:
+          case 23:
           case "end":
             return _context2.stop();
         }
       }
-    }, _callee2, this, [[14, 20]]);
+    }, _callee2, this, [[13, 19]]);
   }));
   return _getBigQueryData.apply(this, arguments);
 }

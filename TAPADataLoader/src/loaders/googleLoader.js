@@ -65,7 +65,7 @@ async function getBigQueryData() {
   query += "sum(blocks.difficulty) as Difficulty ";
   query += "from `bigquery-public-data.ethereum_blockchain.blocks` as blocks ";
   query += "where blocks.number != 0 ";
-  query += "and blocks.timestamp > TIMESTAMP_SUB(current_timestamp, INTERVAL 200 HOUR) ";
+//  query += "and blocks.timestamp > TIMESTAMP_SUB(current_timestamp, INTERVAL 200 HOUR) ";
   query += "group by IntDaysFrom19700101 ";
   query += "order by IntDaysFrom19700101 DESC";
 

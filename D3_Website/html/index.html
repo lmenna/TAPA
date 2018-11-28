@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.area {
+  fill: steelblue;
+  clip-path: url(#clip);
+}
+
+.zoom {
+  cursor: move;
+  fill: none;
+  pointer-events: all;
+}
+
+.lineForPrices {
+    fill: none;
+    stroke: #000000; // black
+    stroke-width: 2px;
+}
+
+.lineForTransactions {
+    fill: none;
+    stroke: #4682b4; // steelblue
+    stroke-width: 2px;
+}
+
+</style>
+<svg width="1000" height="700"></svg>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script src="javascripts/chartBrushed.js"></script>
+<script>
+  /* type(d) Inner function
+   * desc: Converts date and price fields loaded from the .csv file from strings into actual data types.
+   *       Conversion is done in the d3.csv(dataFile, type) method using the second parameter to specify this.
+   */
+  function type(d) {
+    // var parseDate = d3.timeParse("%b %Y");
+    var parseDate = d3.timeParse("%m/%d/%Y");
+
+    d.date = parseDate(d.date);
+    d.price = +d.price;
+    d["Transaction Count"] = +d["Transaction Count"];
+    return d;
+  }
+
+  // Read data
+  function xhrSuccess() {
+    this.callback.apply(this, this.arguments);
+  }
+
+  function xhrError() {
+    console.error(this.statusText);
+  }
+
+  function loadDataFromURL(url, callback /*, opt_arg1, opt_arg2, ... */) {
+      var xhr = new XMLHttpRequest();
+      xhr.callback = callback;
+      xhr.arguments = Array.prototype.slice.call(arguments, 2);
+      xhr.onload = xhrSuccess;
+      xhr.onerror = xhrError;
+      xhr.open("GET", url, true);
+      xhr.send(null);
+  }
+
+  function renderGraph() {
+
+    var dataReturned = JSON.parse(this.responseText);
+    var ETHData = dataReturned[2].data;
+    ETHData.map(item => {
+      item["date"] = new Date(item["date"]);
+      item["price"] = +item["price(USD)"];
+      item["Transaction Count"] = +item["txCount"];
+    });
+    // Render data
+    console.log("renderBrushedLineChart using ", ETHData);
+    renderBrushedLineChart(ETHData);
+  }
+
+  var dataURL = "http://localhost:3000/getdata";
+  console.log("loadDataFromURL:", dataURL);
+  loadDataFromURL(dataURL, renderGraph);
+
+</script>

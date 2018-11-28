@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<style type="text/css">
+
+body { font: 16px Arial;}
+
+/* Style the lines by removing the fill and applying a stroke */
+/* Color palette
+* stroke: #A9A9A9; // darkgrey
+* stroke: #4682b4; // steelblue
+* stroke: #A9A9A9; // darkgrey
+*/
+.lineForPrices {
+    fill: none;
+    stroke: #000000; // black
+    stroke-width: 1px;
+}
+
+/* Style the lines by removing the fill and applying a stroke */
+.lineForTransactions {
+    fill: none;
+    stroke: #4682b4; // steelblue
+    stroke-width: 1px;
+}
+
+.y-axis-label {
+  font-family: 'Tangerine', serif;
+}
+
+.axis text {
+  font-family: 'Tangerine', serif;
+}
+
+.title text {
+  font-size:   '26px';
+  text-decoration: 'underline';
+  font-family: 'Tangerine', serif;
+}
+
+.overlay {
+  fill: none;
+  pointer-events: all;
+}
+
+/* Style the dots by assigning a fill and stroke */
+.dot {
+    fill: #ffab00;
+    stroke: #fff;
+}
+
+.focus circle {
+  fill: none;
+  stroke: steelblue;
+}
+</style>
+
+<!-- Body tag is where we will append our SVG and SVG objects-->
+<body>
+</body>
+
+<!-- Load in the d3 library -->
+<script src="https://d3js.org/d3.v5.min.js"></script>
+<script src="javascripts/lineChart.js"></script>
+<!-- script src="javascripts/chartsBrushed.js"></script -->
+
+
+<script>
+  // Load ethereum price and transaction volume data.
+  // This data was generated seperately using google BigQuery for transactional data
+  // and using Etherscan for historical ETH prices https://etherscan.io/chart/etherprice
+  //d3.csv("http://localhost:3000/data/EtherPrice2.csv").then(function(data) {
+  //  renderETHTimeseriesChart(data);
+  //});
+  const dataFile = "http://localhost:3000/data/sp500.csv";
+  renderLineChart(dataFile);
+</script>

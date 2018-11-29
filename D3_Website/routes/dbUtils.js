@@ -11,6 +11,10 @@ var MongoClient = require("mongodb");
  * return: json block of data for all cryptocurrencies
  */
  async function getTransactionsAndPrices() {
+  if (process.env.mongoU==undefined || process.env.mongoU==="") {
+    console.log("Mongo environment is not defined.");
+    console.log("Try running source SetMongoEnv.sh when starting the server.")
+  }
   var url = "mongodb://" + process.env.mongoU +":"+ process.env.mongoP + "@" + process.env.host + "/ethereum";
   var client;
   var db;

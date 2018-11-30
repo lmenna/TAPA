@@ -37,8 +37,8 @@ function renderBrushedLineChart(data) {
 
   // Create svg and begin rendering process.
   var svg = d3.select("svg"),
-     margin = {top: 20, right: 60, bottom: 110, left: 60},
-     margin2 = {top: 610, right: 60, bottom: 30, left: 60},
+     margin = {top: 20, right: 75, bottom: 110, left: 75},
+     margin2 = {top: 610, right: 75, bottom: 30, left: 75},
      width = +svg.attr("width") - margin.left - margin.right,
      height = +svg.attr("height") - margin.top - margin.bottom,
      height2 = +svg.attr("height") - margin2.top - margin2.bottom;
@@ -130,15 +130,13 @@ function renderBrushedLineChart(data) {
 
     focus.append("g")
        .attr("class", "axis axis--y")
-       .style("font-size", "8px")
        .call(yAxis);
 
    // Call the y axis for transactions in a group tag
    focus.append("g")
-       .attr("class", "y axis")
+       .attr("class", "axis axis--y")
        .call(d3.axisRight(yTransactions)) // Create an axis component with d3.axisLeft
        .attr("transform", "translate(" + width + ",0)")
-       .style("font-size", "8px");
 
     context.append("path")
        .datum(data)
@@ -157,6 +155,7 @@ function renderBrushedLineChart(data) {
 
    // Title for left y-axis is the Price
    svg.append("text")
+       .attr("class", "x-axis-label")
        .attr("text-anchor", "middle")  // this makes it easy to centre the text as the transform is applied to the anchor
        .attr("transform", "translate("+ (margin.left/2.0) +","+(height/2)+")rotate(-90)")  // text is drawn off the screen top left, move down and out and rotate
        .text("Price");
@@ -165,9 +164,42 @@ function renderBrushedLineChart(data) {
    svg.append("text")
        .attr("class", "y-axis-label")
        .attr("text-anchor", "middle")  // this makes it easy to centre the text as the transform is applied to the anchor
-       .attr("transform", "translate("+ (width + margin.right+50) +","+(height/2)+")rotate(-90)")  // text is drawn off the screen top left, move down and out and rotate
+       .attr("transform", "translate("+ (width + margin.right+70) +","+(height/2)+")rotate(-90)")  // text is drawn off the screen top left, move down and out and rotate
        .text("Daily Transactions");
 
+   // Add a legend
+   //set colors
+   var z0 = d3.scaleOrdinal()
+     .range(["#000000", "#4682b4"]);
+
+   //set up the keys for graph legend
+   var keys = (["Price", "Transactions"]);
+   z0.domain(keys);
+   var legend = svg.append("g")
+     .attr("class", "legend")
+     .attr("text-anchor", "end")
+     .selectAll("g")
+     .data(keys.slice().reverse())
+     .enter().append("g")
+     .attr("transform", function(d, i) {
+       return "translate(-10," + i * 25 + ")";
+     });
+
+  //append legend colour blocks
+  legend.append("rect")
+     .attr("x", width + 55)
+     .attr("width", 24)
+     .attr("height", 24)
+     .attr("fill", z0);
+
+   //append legend texts
+   legend.append("text")
+     .attr("x", width+50)
+     .attr("y", 9.5)
+     .attr("dy", "0.32em")
+     .text(function(d) {
+       return d;
+     });
 
     svg.append("rect")
        .attr("class", "zoom")

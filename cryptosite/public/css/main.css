@@ -3842,3 +3842,45 @@ background-color: #999999;
 		background-attachment: inherit;
 	}
 }
+
+/*[ D3 Charting ]
+///////////////////////////////////////////////////////////
+*/
+
+.area {
+  fill: steelblue;
+  clip-path: url(#clip);
+}
+
+.zoom {
+  cursor: move;
+  fill: none;
+  pointer-events: all;
+}
+
+.lineForPrices {
+    fill: none;
+    stroke: #000000; // black
+    stroke-width: 2px;
+}
+
+.lineForTransactions {
+    fill: none;
+    stroke: #4682b4; // steelblue
+    stroke-width: 2px;
+}
+
+.axis-axis--y {
+		font-family: OpenSans;
+		font-size: 12px
+}
+
+.axis--x {
+		font-family: OpenSans;
+		font-size: 12px
+}
+
+.legend {
+	font-family: OpenSans;
+	font-size: 16px;
+}

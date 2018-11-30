@@ -27,11 +27,12 @@ router.get('/json', (req, res) => {
 
 router.get('/graph', (req, res) => {
 
-	const data = {
-		greeting: "Welcome to my restaurant",
-		description: "This is a great place for business lunch"
-	}
-	res.render('graphCrypto', data)
+	var options = [
+	    { value: 1, text: '1' },
+	    { value: 2, selected: true, text: '2' },
+	    { value: 3, text: '3' }
+	];
+	res.render('graphCrypto', options)
 })
 
 /* Path to get JSON data from MongoDB

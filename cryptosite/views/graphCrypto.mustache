@@ -1,35 +1,21 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
-<style>
-.area {
-  fill: steelblue;
-  clip-path: url(#clip);
-}
+<html lang="en">
 
-.zoom {
-  cursor: move;
-  fill: none;
-  pointer-events: all;
-}
+{{>head}}
 
-.lineForPrices {
-    fill: none;
-    stroke: #000000; // black
-    stroke-width: 2px;
-}
 
-.lineForTransactions {
-    fill: none;
-    stroke: #4682b4; // steelblue
-    stroke-width: 2px;
-}
-</style>
+<body  style="background-color:#BABABA">
 
-  <head>
-    <meta charset="utf-8">
-    <title>Check out the graph</title>
-  </head>
-  <body>
+{{>navbar}}
+
+
+<section  id="slider-deli">
+<div>
+  <br/><br/><br/><br/><br/>
+  <ul>
+  <li>
+  </li>
+  <li>
     <svg width="1000" height="700"></svg>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="js/chartBrushed.js"></script>
@@ -70,7 +56,7 @@
       function renderGraph() {
 
         var dataReturned = JSON.parse(this.responseText);
-        var CryptoData = dataReturned[0].data;
+        var CryptoData = dataReturned[1].data;
         CryptoData.map(item => {
           item["date"] = new Date(item["date"]);
           item["price"] = +item["price(USD)"];
@@ -83,7 +69,17 @@
       var dataURL = "/api/crypto";
       console.log("loadDataFromURL:", dataURL);
       loadDataFromURL(dataURL, renderGraph);
-
     </script>
-  </body>
+
+  </li>
+  <li>
+    two
+  </li>
+</ul>
+</div>
+</section>
+
+
+</body>
+
 </html>

@@ -29,19 +29,12 @@ router.get("/crypto", async (req, res) => {
      var db;
      try {
        client = await MongoClient.connect(url, { useNewUrlParser: true });
-       db = client.db("ethereum");
+       db = client.db("crypto");
        return await db.collection("marketdata.transaction_prices").find({}).toArray();
      } finally {
        client.close();
      }
    }
-}
-
-async function testIt() {
-
-  return new Promise(function(resolve, reject) {
-    resolve( { testIt: "completed" } );
-  })
 }
 
 module.exports = router

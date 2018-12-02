@@ -14,8 +14,45 @@
   <br/><br/><br/><br/><br/>
   <ul>
   <li>
+    Selected Currency:
+    <select name="currency">
+      {{#options}}
+        <option value="{{text}}" {{#selected}}selected="selected"{{/selected}}>{{text}}</option>
+      {{/options}}
+    </select>
+    <script>
+      document.addEventListener('DOMContentLoaded',function() {
+        document.querySelector('select[name="currency"]').onchange=changeEventHandler;
+      },false);
+
+      function changeEventHandler(event) {
+        // You can use “this” to refer to the selected element.
+        if(!event.target.value)
+          alert('Please Select One');
+        else {
+          renderGraph(event.target.value);
+        }
+      }
+      </script>
+  </li>
+
+  <!-- currency selection menu -->
+  <div class="row wrap-food-menu">
+    <div id="food-menu">
+      <ul class="nav nav-tabs" id="myTab" role="tablist">
+        {{#options}}
+        <li class="nav-item">
+          <a class="nav-link" id="tab-dinner" data-toggle="tab" href="/graph?ccy={{text}}" role="tab">{{text}}</a>
+        </li>
+        {{/options}}
+      </ul>
+    </div>
+  </div>
+
+  <li>
   </li>
   <li>
+    <br/>
     <svg width="1000" height="700"></svg>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="js/chartBrushed.js"></script>
@@ -43,7 +80,7 @@
         console.error(this.statusText);
       }
 
-      function loadDataFromURL(url, callback /*, opt_arg1, opt_arg2, ... */) {
+      function loadDataFromURL(url, callback, arg1 /*, opt_arg1, opt_arg2, ... */) {
           var xhr = new XMLHttpRequest();
           xhr.callback = callback;
           xhr.arguments = Array.prototype.slice.call(arguments, 2);
@@ -53,10 +90,22 @@
           xhr.send(null);
       }
 
-      function renderGraph() {
+      // Todo - need to find a method to manage returned data.
+      var dataReturned;
 
-        var dataReturned = JSON.parse(this.responseText);
-        var CryptoData = dataReturned[1].data;
+      function renderGraph(itemToGraph) {
+
+        console.log("renderGraph( ", itemToGraph, " )");
+        if(this.responseText!=undefined)
+          dataReturned = JSON.parse(this.responseText);
+
+        // Find the selected currency in the data returned
+        var selectItem = 0;
+        for(i=0; i<dataReturned.length; i++) {
+          if(dataReturned[i].header.ticker === itemToGraph)
+            selectItem = i;
+        }
+        var CryptoData = dataReturned[selectItem].data;
         CryptoData.map(item => {
           item["date"] = new Date(item["date"]);
           item["price"] = +item["price(USD)"];
@@ -68,7 +117,7 @@
 
       var dataURL = "/api/crypto";
       console.log("loadDataFromURL:", dataURL);
-      loadDataFromURL(dataURL, renderGraph);
+      loadDataFromURL(dataURL, renderGraph, "{{selectedCCY}}");
     </script>
 
   </li>

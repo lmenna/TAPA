@@ -27,12 +27,23 @@ router.get('/json', (req, res) => {
 
 router.get('/graph', (req, res) => {
 
-	var options = [
-	    { value: 1, text: '1' },
-	    { value: 2, selected: true, text: '2' },
-	    { value: 3, text: '3' }
-	];
-	res.render('graphCrypto', options)
+	console.log("Accessing /graph");
+	console.log("Accessing req.query:", req.query);
+
+	// Select currency to graph
+	var ccy = "eth";
+	if (req.query.ccy!==undefined && req.query.ccy!=="")
+		ccy = req.query.ccy;
+	console.log("Graphing ccy:", ccy);
+	var data = {
+	    options: [
+	        { value: 0, text: 'xem' },
+	        { value: 1, selected: true, text: 'eth' },
+	        { value: 2, text: 'btc' }
+	    ],
+			selectedCCY: ccy
+	};
+	res.render('graphCrypto', data)
 })
 
 /* Path to get JSON data from MongoDB

@@ -96,11 +96,11 @@ async function dataLoadAndSave() {
   else if (results.data.length > 0) {
     console.log("Got good results. Number of records:", results.data.length);
     formatResults(results);
-    writeResultsToMongo(results, "marketdata.eth_transactions");
+    writeResultsToMongo(results, "ethereum", "marketdata.eth_transactions");
     var pricingData = await loadPricingData();
     var pricingJSON = formatPricingData(pricingData);
     console.log(pricingJSON);
-    writeResultsToMongo(pricingJSON, "marketdata.eth_prices");
+    writeResultsToMongo(pricingJSON, "ethereum", "marketdata.eth_prices");
   }
   else {
     console.log("BigQuery worked but results.data had no rows.")
@@ -111,7 +111,7 @@ async function processCoinmetrics() {
   tickersToSelect.map(async(item) => {
     var ticker = item;
     var coinmetricsData = await loadCoinmetricsFile(fileToProcess, ticker, fieldToSelect);
-    writeResultsToMongo(coinmetricsData, "marketdata.transaction_prices")
+    writeResultsToMongo(coinmetricsData, "crypto", "marketdata.transaction_prices")
   });
 }
 

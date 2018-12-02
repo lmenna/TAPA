@@ -152,7 +152,7 @@ function _dataLoadAndSave() {
 
             console.log("Got good results. Number of records:", results.data.length);
             formatResults(results);
-            (0, _dbUtils.writeResultsToMongo)(results, "marketdata.eth_transactions");
+            (0, _dbUtils.writeResultsToMongo)(results, "ethereum", "marketdata.eth_transactions");
             _context2.next = 13;
             return (0, _etherscanLoader.loadPricingData)();
 
@@ -160,7 +160,7 @@ function _dataLoadAndSave() {
             pricingData = _context2.sent;
             pricingJSON = formatPricingData(pricingData);
             console.log(pricingJSON);
-            (0, _dbUtils.writeResultsToMongo)(pricingJSON, "marketdata.eth_prices");
+            (0, _dbUtils.writeResultsToMongo)(pricingJSON, "ethereum", "marketdata.eth_prices");
             _context2.next = 20;
             break;
 
@@ -206,7 +206,7 @@ function _processCoinmetrics() {
 
                       case 3:
                         coinmetricsData = _context3.sent;
-                        (0, _dbUtils.writeResultsToMongo)(coinmetricsData, "marketdata.transaction_prices");
+                        (0, _dbUtils.writeResultsToMongo)(coinmetricsData, "crypto", "marketdata.transaction_prices");
 
                       case 5:
                       case "end":

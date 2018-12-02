@@ -35,83 +35,108 @@ function _getMostRecentETHData() {
       while (1) {
         switch (_context.prev = _context.next) {
           case 0:
-            url = "mongodb://" + process.env.mongoU + ":" + process.env.mongoP + "@" + process.env.host + "/ethereum";
-            _context.prev = 1;
-            _context.next = 4;
+            url = process.env.URLEth;
+
+            if (!(url == undefined || url === "")) {
+              _context.next = 6;
+              break;
+            }
+
+            console.log("MongoDB url not set in the environment.");
+            console.log("Try running source SetMongoEnv.sh prior to running this.");
+            _context.next = 17;
+            break;
+
+          case 6:
+            _context.prev = 6;
+            _context.next = 9;
             return _mongodb.MongoClient.connect(url, {
               useNewUrlParser: true
             });
 
-          case 4:
+          case 9:
             client = _context.sent;
             db = client.db("ethereum");
-            _context.next = 8;
+            _context.next = 13;
             return db.collection("marketdata.eth_transactions").find({}).toArray();
 
-          case 8:
+          case 13:
             return _context.abrupt("return", _context.sent);
 
-          case 9:
-            _context.prev = 9;
+          case 14:
+            _context.prev = 14;
             client.close();
-            return _context.finish(9);
+            return _context.finish(14);
 
-          case 12:
+          case 17:
           case "end":
             return _context.stop();
         }
       }
-    }, _callee, this, [[1,, 9, 12]]);
+    }, _callee, this, [[6,, 14, 17]]);
   }));
   return _getMostRecentETHData.apply(this, arguments);
 }
 
-function writeResultsToMongo(_x, _x2) {
+function writeResultsToMongo(_x, _x2, _x3) {
   return _writeResultsToMongo.apply(this, arguments);
 }
 
 function _writeResultsToMongo() {
   _writeResultsToMongo = _asyncToGenerator(
   /*#__PURE__*/
-  regeneratorRuntime.mark(function _callee2(dataToWrite, targetCollection) {
+  regeneratorRuntime.mark(function _callee2(dataToWrite, targetDB, targetCollection) {
     var url, client, db;
     return regeneratorRuntime.wrap(function _callee2$(_context2) {
       while (1) {
         switch (_context2.prev = _context2.next) {
           case 0:
-            url = "mongodb://" + process.env.mongoU + ":" + process.env.mongoP + "@" + process.env.host + "/ethereum";
-            _context2.prev = 1;
-            _context2.next = 4;
+            url = process.env.URLCrypto;
+
+            if (!(url == undefined || url === "")) {
+              _context2.next = 6;
+              break;
+            }
+
+            console.log("MongoDB url not set in the environment.");
+            console.log("Try running source SetMongoEnv.sh prior to running this.");
+            _context2.next = 22;
+            break;
+
+          case 6:
+            _context2.prev = 6;
+            console.log("Writing results to", targetCollection);
+            _context2.next = 10;
             return _mongodb.MongoClient.connect(url, {
               useNewUrlParser: true
             });
 
-          case 4:
+          case 10:
             client = _context2.sent;
-            db = client.db("ethereum");
-            _context2.next = 8;
+            db = client.db(targetDB);
+            _context2.next = 14;
             return db.collection(targetCollection).insertOne(dataToWrite);
 
-          case 8:
-            _context2.next = 13;
+          case 14:
+            _context2.next = 19;
             break;
 
-          case 10:
-            _context2.prev = 10;
-            _context2.t0 = _context2["catch"](1);
+          case 16:
+            _context2.prev = 16;
+            _context2.t0 = _context2["catch"](6);
             console.log("Error writing to DB:", _context2.t0);
 
-          case 13:
-            _context2.prev = 13;
+          case 19:
+            _context2.prev = 19;
             client.close();
-            return _context2.finish(13);
+            return _context2.finish(19);
 
-          case 16:
+          case 22:
           case "end":
             return _context2.stop();
         }
       }
-    }, _callee2, this, [[1, 10, 13, 16]]);
+    }, _callee2, this, [[6, 16, 19, 22]]);
   }));
   return _writeResultsToMongo.apply(this, arguments);
 }

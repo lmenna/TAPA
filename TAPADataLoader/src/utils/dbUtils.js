@@ -10,15 +10,21 @@ import { MongoClient } from 'mongodb';
  * return: json block of data for ETH daily transaction activity
  */
  async function getMostRecentETHData() {
-  var url = "mongodb://" + process.env.mongoU +":"+ process.env.mongoP + "@" + process.env.host + "/ethereum";
-  var client;
-  var db;
-  try {
-    client = await MongoClient.connect(url, { useNewUrlParser: true });
-    db = client.db("ethereum");
-    return await db.collection("marketdata.eth_transactions").find({}).toArray();
-  } finally {
-    client.close();
+  var url = process.env.URLEth;
+  if (url==undefined || url==="") {
+    console.log("MongoDB url not set in the environment.");
+    console.log("Try running source SetMongoEnv.sh prior to running this.");
+  }
+  else {
+    var client;
+    var db;
+    try {
+      client = await MongoClient.connect(url, { useNewUrlParser: true });
+      db = client.db("ethereum");
+      return await db.collection("marketdata.eth_transactions").find({}).toArray();
+    } finally {
+      client.close();
+    }
   }
 }
 
@@ -27,21 +33,28 @@ import { MongoClient } from 'mongodb';
  * param: dataToWrite - the json block to write to MongoDB.
  *
  */
-async function writeResultsToMongo(dataToWrite, targetCollection) {
+async function writeResultsToMongo(dataToWrite, targetDB, targetCollection) {
 
-  var url = "mongodb://" + process.env.mongoU +":"+ process.env.mongoP + "@" + process.env.host + "/ethereum";
-  var client;
-  var db;
-  try {
-    client = await MongoClient.connect(url, { useNewUrlParser: true });
-    db = client.db("ethereum");
-    await db.collection(targetCollection).insertOne(dataToWrite);
+  var url = process.env.URLCrypto;
+  if (url==undefined || url==="") {
+    console.log("MongoDB url not set in the environment.");
+    console.log("Try running source SetMongoEnv.sh prior to running this.");
   }
-  catch(err) {
-    console.log("Error writing to DB:", err);
-  }
-  finally {
-      client.close();
+  else {
+    var client;
+    var db;
+    try {
+      console.log("Writing results to", targetCollection);
+      client = await MongoClient.connect(url, { useNewUrlParser: true });
+      db = client.db(targetDB);
+      await db.collection(targetCollection).insertOne(dataToWrite);
+    }
+    catch(err) {
+      console.log("Error writing to DB:", err);
+    }
+    finally {
+        client.close();
+    }
   }
 }
 

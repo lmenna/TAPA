@@ -35,6 +35,9 @@ function renderBrushedLineChart(data) {
      context.select(".brush").call(brush.move, x.range().map(t.invertX, t));
   }
 
+  // Clear the graph area so we can chart on it many times.
+  d3.selectAll("svg > *").remove();
+
   // Create svg and begin rendering process.
   var svg = d3.select("svg"),
      margin = {top: 20, right: 75, bottom: 110, left: 75},

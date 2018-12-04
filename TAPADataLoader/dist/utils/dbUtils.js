@@ -5,6 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.writeResultsToMongo = writeResultsToMongo;
 exports.getMostRecentETHData = getMostRecentETHData;
+exports.removeCollectionFromMongo = removeCollectionFromMongo;
 
 var _mongodb = require("mongodb");
 
@@ -81,6 +82,12 @@ function _getMostRecentETHData() {
 function writeResultsToMongo(_x, _x2, _x3) {
   return _writeResultsToMongo.apply(this, arguments);
 }
+/* writeResultsToMongo()
+ * desc: Writes results from the google BigQuery into MongoDB on the cloud
+ * param: dataToWrite - the json block to write to MongoDB.
+ *
+ */
+
 
 function _writeResultsToMongo() {
   _writeResultsToMongo = _asyncToGenerator(
@@ -100,12 +107,12 @@ function _writeResultsToMongo() {
 
             console.log("MongoDB url not set in the environment.");
             console.log("Try running source SetMongoEnv.sh prior to running this.");
-            _context2.next = 22;
+            _context2.next = 23;
             break;
 
           case 6:
             _context2.prev = 6;
-            console.log("Writing results to", targetCollection);
+            console.log("Connect to MongoDB");
             _context2.next = 10;
             return _mongodb.MongoClient.connect(url, {
               useNewUrlParser: true
@@ -114,30 +121,95 @@ function _writeResultsToMongo() {
           case 10:
             client = _context2.sent;
             db = client.db(targetDB);
-            _context2.next = 14;
+            console.log("Writing results to", targetCollection);
+            _context2.next = 15;
             return db.collection(targetCollection).insertOne(dataToWrite);
 
-          case 14:
-            _context2.next = 19;
+          case 15:
+            _context2.next = 20;
             break;
 
-          case 16:
-            _context2.prev = 16;
+          case 17:
+            _context2.prev = 17;
             _context2.t0 = _context2["catch"](6);
             console.log("Error writing to DB:", _context2.t0);
 
-          case 19:
-            _context2.prev = 19;
+          case 20:
+            _context2.prev = 20;
             client.close();
-            return _context2.finish(19);
+            return _context2.finish(20);
 
-          case 22:
+          case 23:
           case "end":
             return _context2.stop();
         }
       }
-    }, _callee2, this, [[6, 16, 19, 22]]);
+    }, _callee2, this, [[6, 17, 20, 23]]);
   }));
   return _writeResultsToMongo.apply(this, arguments);
+}
+
+function removeCollectionFromMongo(_x4, _x5) {
+  return _removeCollectionFromMongo.apply(this, arguments);
+}
+
+function _removeCollectionFromMongo() {
+  _removeCollectionFromMongo = _asyncToGenerator(
+  /*#__PURE__*/
+  regeneratorRuntime.mark(function _callee3(targetDB, targetCollection) {
+    var url, client, db;
+    return regeneratorRuntime.wrap(function _callee3$(_context3) {
+      while (1) {
+        switch (_context3.prev = _context3.next) {
+          case 0:
+            url = process.env.URLCrypto;
+
+            if (!(url == undefined || url === "")) {
+              _context3.next = 6;
+              break;
+            }
+
+            console.log("MongoDB url not set in the environment.");
+            console.log("Try running source SetMongoEnv.sh prior to running this.");
+            _context3.next = 23;
+            break;
+
+          case 6:
+            _context3.prev = 6;
+            console.log("Connect to MongoDB");
+            _context3.next = 10;
+            return _mongodb.MongoClient.connect(url, {
+              useNewUrlParser: true
+            });
+
+          case 10:
+            client = _context3.sent;
+            db = client.db(targetDB);
+            console.log("Deleting prior data in", targetCollection);
+            _context3.next = 15;
+            return db.collection(targetCollection).remove();
+
+          case 15:
+            _context3.next = 20;
+            break;
+
+          case 17:
+            _context3.prev = 17;
+            _context3.t0 = _context3["catch"](6);
+            console.log("Error writing to DB:", _context3.t0);
+
+          case 20:
+            _context3.prev = 20;
+            client.close();
+            return _context3.finish(20);
+
+          case 23:
+          case "end":
+            return _context3.stop();
+        }
+      }
+    }, _callee3, this, [[6, 17, 20, 23]]);
+  }));
+  return _removeCollectionFromMongo.apply(this, arguments);
 }
 //# sourceMappingURL=dbUtils.js.map

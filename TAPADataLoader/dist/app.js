@@ -189,6 +189,10 @@ function _processCoinmetrics() {
       while (1) {
         switch (_context4.prev = _context4.next) {
           case 0:
+            _context4.next = 2;
+            return (0, _dbUtils.removeCollectionFromMongo)("crypto", "marketdata.transaction_prices");
+
+          case 2:
             tickersToSelect.map(
             /*#__PURE__*/
             function () {
@@ -221,7 +225,7 @@ function _processCoinmetrics() {
               };
             }());
 
-          case 1:
+          case 3:
           case "end":
             return _context4.stop();
         }

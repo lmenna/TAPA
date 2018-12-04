@@ -116,6 +116,8 @@ function renderBrushedLineChart(data) {
       .attr("class", "lineForPrices")
       .attr("d", line);
 
+      console.log("line:", line)
+
     focus.append("path")
       .datum(data)
       .attr("class", "lineForTransactions")

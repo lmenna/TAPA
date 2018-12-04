@@ -7,7 +7,7 @@ import "@babel/polyfill";
 import {getQuery, getBigQueryData} from "./loaders/googleLoader";
 // npm install mongodb --save-dev
 import { MongoClient } from 'mongodb';
-import { writeResultsToMongo } from "./utils/dbUtils"
+import { removeCollectionFromMongo, writeResultsToMongo } from "./utils/dbUtils"
 import { loadPricingData } from "./loaders/etherscanLoader";
 import { loadCoinmetricsFile } from "./loaders/coinmetricsLoader";
 
@@ -108,6 +108,8 @@ async function dataLoadAndSave() {
 }
 
 async function processCoinmetrics() {
+
+  await removeCollectionFromMongo("crypto", "marketdata.transaction_prices");
   tickersToSelect.map(async(item) => {
     var ticker = item;
     var coinmetricsData = await loadCoinmetricsFile(fileToProcess, ticker, fieldToSelect);

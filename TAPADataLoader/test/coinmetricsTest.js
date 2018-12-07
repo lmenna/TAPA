@@ -38,6 +38,11 @@ describe("Get data from coinmetrics", function() {
       "txCount",
       "price(USD)"
     ];
-    await loadCoinmetricsFile(fileToProcess, badTicker, fieldToSelect).should.be.rejectedWith("Data not found for:" + badTicker);
+    try {
+      await loadCoinmetricsFile(fileToProcess, badTicker, fieldToSelect).should.be.rejectedWith("Data not found for:" + badTicker);
+    }
+    catch(err) {
+
+    }
   });
 });

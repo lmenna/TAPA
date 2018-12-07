@@ -19,3 +19,6 @@ rm shiny-server-1.5.4.869-rh5-x86_64.rpm
 #add user=ruser with rpass
 sudo useradd ruser
 sudo echo rpass | sudo passwd --stdin ruser
+
+#Needed to run mongolite. (For Fedora, CentOS or RHEL use openssl-devel and cyrus-sasl-devel:)
+sudo yum install openssl-devel cyrus-sasl-devel

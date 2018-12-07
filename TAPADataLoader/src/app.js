@@ -16,9 +16,10 @@ const dataDir = "./data/";
 const fileToProcess = dataDir + "all.zip";
 // Crypocurrencies to process from the coinmetrics dataset.
 const tickersToSelect = [
-  "eth",
-  "btc",
-  "xem"
+  "eth", "btc", "xem", "xmr", "xrp",
+  "etc", "eos", "maid", "xlm", "lsk",
+  "sp500", "dgb", "zec", "ltc",
+  "dash", "bat"
 ];
 // Fields to load from the coinmetrics data set.
 const fieldToSelect = [
@@ -112,8 +113,14 @@ async function processCoinmetrics() {
   await removeCollectionFromMongo("crypto", "marketdata.transaction_prices");
   tickersToSelect.map(async(item) => {
     var ticker = item;
-    var coinmetricsData = await loadCoinmetricsFile(fileToProcess, ticker, fieldToSelect);
-    writeResultsToMongo(coinmetricsData, "crypto", "marketdata.transaction_prices")
+    // var coinmetricsData = await loadCoinmetricsFile(fileToProcess, ticker, fieldToSelect);
+    try {
+      var coinmetricsData = await loadCoinmetricsFile(fileToProcess, ticker, []);
+      writeResultsToMongo(coinmetricsData, "crypto", "marketdata.transaction_prices")
+    }
+    catch(err) {
+      console.log("Error loading ticker:", ticker, " err:", err);
+    }
   });
 }
 

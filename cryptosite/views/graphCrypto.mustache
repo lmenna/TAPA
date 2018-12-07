@@ -13,7 +13,7 @@
 <div>
   <br/><br/><br/><br/><br/>
   <ul>
-  <li>
+  <!-- li>
     Selected Currency:
     <select name="currency">
       {{#options}}
@@ -34,11 +34,11 @@
         }
       }
       </script>
-  </li>
+  </li -->
 
   <!-- currency selection menu -->
   <div class="row wrap-food-menu">
-    <div id="food-menu">
+    <div id="food-menu" style="margin:10px">
       <ul class="nav nav-tabs" id="myTab" role="tablist">
         {{#options}}
         <li class="nav-item">
@@ -50,6 +50,10 @@
   </div>
 
   <li>
+  </li>
+  <br/>
+  <li>
+    <p id="correlations" style="margin:25px;color:black"></p>
   </li>
   <li>
     <br/>
@@ -91,13 +95,27 @@
       }
 
       // Todo - need to find a method to manage returned data.
-      var dataReturned;
+      var DBResults;
 
       function renderGraph(itemToGraph) {
 
         console.log("renderGraph( ", itemToGraph, " )");
         if(this.responseText!=undefined)
-          dataReturned = JSON.parse(this.responseText);
+          DBResults = JSON.parse(this.responseText);
+
+        // Extract price, transaction and correlation data from the DB results
+        var dataReturned = DBResults.PriceTrans;
+        var correlations = DBResults.Correlations;
+
+        // Display to correlation data
+        var corString = "Correlation: "
+        if (correlations!==undefined && correlations.length!=0) {
+          corString += correlations[0].tx_price_cor.toFixed(6);
+        }
+        else {
+          corString += "n/a";
+        }
+        document.getElementById("correlations").innerHTML = corString;
 
         // Find the selected currency in the data returned
         var selectItem = 0;
@@ -111,18 +129,16 @@
           item["price"] = +item["price(USD)"];
           item["Transaction Count"] = +item["txCount"];
         });
-        // Render data
+        // Render graph data
         renderBrushedLineChart(CryptoData);
+
       }
 
-      var dataURL = "/api/crypto";
+      var dataURL = "/api/crypto?ticker={{selectedCCY}}";
       console.log("loadDataFromURL:", dataURL);
       loadDataFromURL(dataURL, renderGraph, "{{selectedCCY}}");
     </script>
 
-  </li>
-  <li>
-    two
   </li>
 </ul>
 </div>

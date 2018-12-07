@@ -20,7 +20,7 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
 var dataDir = "./data/";
 var fileToProcess = dataDir + "all.zip"; // Crypocurrencies to process from the coinmetrics dataset.
 
-var tickersToSelect = ["eth", "btc", "xem"]; // Fields to load from the coinmetrics data set.
+var tickersToSelect = ["eth", "btc", "xem", "xmr", "xrp", "etc", "eos", "maid", "xlm", "lsk", "sp500", "dgb", "zec", "ltc", "dash", "bat"]; // Fields to load from the coinmetrics data set.
 
 var fieldToSelect = ["date", "txVolume(USD)", "adjustedTxVolume(USD)", "txCount", "price(USD)"];
 /* LoadGoogleDataIntoMongo()
@@ -204,20 +204,29 @@ function _processCoinmetrics() {
                   while (1) {
                     switch (_context3.prev = _context3.next) {
                       case 0:
-                        ticker = item;
-                        _context3.next = 3;
-                        return (0, _coinmetricsLoader.loadCoinmetricsFile)(fileToProcess, ticker, fieldToSelect);
+                        ticker = item; // var coinmetricsData = await loadCoinmetricsFile(fileToProcess, ticker, fieldToSelect);
 
-                      case 3:
+                        _context3.prev = 1;
+                        _context3.next = 4;
+                        return (0, _coinmetricsLoader.loadCoinmetricsFile)(fileToProcess, ticker, []);
+
+                      case 4:
                         coinmetricsData = _context3.sent;
                         (0, _dbUtils.writeResultsToMongo)(coinmetricsData, "crypto", "marketdata.transaction_prices");
+                        _context3.next = 11;
+                        break;
 
-                      case 5:
+                      case 8:
+                        _context3.prev = 8;
+                        _context3.t0 = _context3["catch"](1);
+                        console.log("Error loading ticker:", ticker, " err:", _context3.t0);
+
+                      case 11:
                       case "end":
                         return _context3.stop();
                     }
                   }
-                }, _callee3, this);
+                }, _callee3, this, [[1, 8]]);
               }));
 
               return function (_x) {

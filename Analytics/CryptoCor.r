@@ -68,3 +68,8 @@ for(ticker in tickers) {
 #write_to_mongo("eth", ct_eth$estimate[[1]], toString(ct_eth))
 #write_to_mongo("btc", ct_btc$estimate[[1]], toString(ct_btc))
 #write_to_mongo("xem", ct_xem$estimate[[1]], toString(ct_xem))
+
+start_time <- Sys.time()
+ct_btc <- cor.test(as.numeric(btc$txCount), as.numeric(btc$`price(USD)`), use="complete.obs")
+end_time <- Sys.time()
+end_time - start_time

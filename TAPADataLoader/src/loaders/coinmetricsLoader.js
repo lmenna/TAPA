@@ -6,13 +6,11 @@
 import fs from "fs";
 // npm install jszip --save-dev
 import JSZip from "jszip";
-// npm install lodash --save-dev
-import cloneDeep from "lodash/cloneDeep";
 
 /* csvJSON(csv, fieldsToSelect)
  * desc: Take csv data as a string and parses it into an object with names matching the header row.
  * param: csv data.
- * param: fieldsToSelect. This version only includes select fields from the .csv data.
+ * param: fieldsToSelect. This version only includes selected fields from the .csv data.
  * Note: This is a simplified parser that will work for the coin metrics csv content.  It will not process
  *       generalized csv formats.
  */

@@ -21,7 +21,7 @@ import { MongoClient } from 'mongodb';
     try {
       client = await MongoClient.connect(url, { useNewUrlParser: true });
       db = client.db("ethereum");
-      return await db.collection("marketdata.eth_transactions").find({}).toArray();
+      return await db.collection("eth_transactions").find({}).toArray();
     } finally {
       client.close();
     }

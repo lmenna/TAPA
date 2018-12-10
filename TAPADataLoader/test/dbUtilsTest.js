@@ -1,11 +1,12 @@
 import "@babel/polyfill";
 import {assert, expect} from "chai";
-import { MongoClient } from 'mongodb';
 import {getMostRecentETHData} from "../src/utils/dbUtils";
 
 describe("MongoDB see if recent data can be queried", function(){
-  it("should return some data", async function() {
-    var result = await getMostRecentETHData();
-    assert.isAtLeast(result[0].data.length, 1);
+  it("Should return specific data from a valid query", async function() {
+    var url = process.env.URLEth;
+    const result = await getMostRecentETHData();
+    console.log("result:", result);
+    expect(result[0]).to.have.property("_id");
   });
 });

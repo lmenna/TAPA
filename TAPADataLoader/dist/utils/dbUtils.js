@@ -59,7 +59,7 @@ function _getMostRecentETHData() {
             client = _context.sent;
             db = client.db("ethereum");
             _context.next = 13;
-            return db.collection("marketdata.eth_transactions").find({}).toArray();
+            return db.collection("eth_transactions").find({}).toArray();
 
           case 13:
             return _context.abrupt("return", _context.sent);

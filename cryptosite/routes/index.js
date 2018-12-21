@@ -2,7 +2,7 @@
 const turbo = require('turbo360')({site_id: process.env.TURBO_APP_ID})
 const vertex = require('vertex360')({site_id: process.env.TURBO_APP_ID})
 const router = vertex.router()
-//var dbutils = require("dbutils");
+var path    = require("path");
 
 /*  This is the home route. It renders the index.mustache page from the views directory.
 	Data is rendered using the Mustache templating engine. For more
@@ -10,11 +10,16 @@ const router = vertex.router()
 router.get('/', (req, res) => {
 
 	const data = {
-		greeting: "Welcome to my restaurant",
-		description: "This is a great place for business lunch"
+		greeting: "Welcome to Type3",
+		description: "This is a great place to research crypto assets."
 	}
 	res.render('index', data)
 })
+
+router.get('/about',function(req,res){
+  res.sendFile(path.join(__dirname+'/html/about-us.html'));
+});
+
 
 /*  This route render json data */
 router.get('/json', (req, res) => {
@@ -39,12 +44,32 @@ router.get('/graph', (req, res) => {
 	    options: [
 	        { value: 0, text: 'xem' },
 	        { value: 1, selected: true, text: 'eth' },
-	        { value: 2, text: 'btc' }
+					{ value: 2, text: 'btc' },
+					{ value: 3, text: 'bat' },
+					{ value: 4, text: 'maid' },
+					{ value: 5, text: 'eos' }
 	    ],
 			selectedCCY: ccy
 	};
 	res.render('graphCrypto', data)
 })
+
+router.get('/correlate', (req, res) => {
+
+	var data = "";
+	console.log("Accessing /cor");
+	console.log("Accessing req.query:", req.query);
+	res.render("corCrypto", data)
+});
+
+
+router.get('/underconstruction', (req, res) => {
+
+	var data = "";
+	console.log("Accessing /underconstruction");
+	console.log("Accessing req.query:", req.query);
+	res.render("placeHolder01", data)
+});
 
 /* Path to get JSON data from MongoDB
  * usage: http://localhost:3000/getdata?ticker=eth

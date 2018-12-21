@@ -7,7 +7,7 @@ import "@babel/polyfill";
 import {getQuery, getBigQueryData} from "./loaders/googleLoader";
 // npm install mongodb --save-dev
 import { MongoClient } from 'mongodb';
-import { removeCollectionFromMongo, writeResultsToMongo } from "./utils/dbUtils"
+import { removeCollectionFromMongo, writeResultsToMongo, writeResultsToMongoSync } from "./utils/dbUtils"
 import { loadPricingData } from "./loaders/etherscanLoader";
 import { loadCoinmetricsFile } from "./loaders/coinmetricsLoader";
 
@@ -114,12 +114,20 @@ async function processCoinmetrics() {
   tickersToSelect.map(async(item) => {
     var ticker = item;
     // var coinmetricsData = await loadCoinmetricsFile(fileToProcess, ticker, fieldToSelect);
+    console.log("Processing coinmetrics file:", fileToProcess, " ticker:", ticker)
+    let coinmetricsData = "";
     try {
-      var coinmetricsData = await loadCoinmetricsFile(fileToProcess, ticker, []);
-      writeResultsToMongo(coinmetricsData, "crypto", "marketdata.transaction_prices")
+      coinmetricsData = await loadCoinmetricsFile(fileToProcess, ticker, []);
     }
     catch(err) {
-      console.log("Error loading ticker:", ticker, " err:", err);
+      console.log("Error in loadCoinmetricsFile.")
+    }
+    try {
+      let result = await writeResultsToMongoSync(coinmetricsData, "crypto", "marketdata.transaction_prices")
+      console.log("Write complete:", result);
+    }
+    catch(error) {
+      console.log("Error in processCoinmetrics:", error.message);
     }
   });
 }

@@ -13,29 +13,6 @@
 <div>
   <br/><br/><br/><br/><br/>
   <ul>
-  <!-- li>
-    Selected Currency:
-    <select name="currency">
-      {{#options}}
-        <option value="{{text}}" {{#selected}}selected="selected"{{/selected}}>{{text}}</option>
-      {{/options}}
-    </select>
-    <script>
-      document.addEventListener('DOMContentLoaded',function() {
-        document.querySelector('select[name="currency"]').onchange=changeEventHandler;
-      },false);
-
-      function changeEventHandler(event) {
-        // You can use “this” to refer to the selected element.
-        if(!event.target.value)
-          alert('Please Select One');
-        else {
-          renderGraph(event.target.value);
-        }
-      }
-      </script>
-  </li -->
-
   <!-- currency selection menu -->
   <div class="row wrap-food-menu">
     <div id="food-menu" style="margin:10px">
@@ -54,6 +31,14 @@
   <br/>
   <li>
     <p id="correlations" style="margin:25px;color:black"></p>
+    <script>
+    // Display to correlation data
+    var corString = "<b>Placeholder for detailed correlation analysis.</b>";
+    document.getElementById("correlations").innerHTML = corString;
+    </script>
+  </li>
+  <li>
+    <img src="images/CorChart.jpg" style="width:600px;height:600px;"></img>
   </li>
   <li>
     <br/>
@@ -106,17 +91,6 @@
         // Extract price, transaction and correlation data from the DB results
         var dataReturned = DBResults.PriceTrans;
         var correlations = DBResults.Correlations;
-
-        // Display to correlation data
-        var corString = "<b>" + itemToGraph + "</b> - Price transaction correlation: ";
-        if (correlations!==undefined && correlations.length!=0) {
-          corString += correlations[0].tx_price_cor.toFixed(6);
-        }
-        else {
-          corString += "n/a";
-        }
-        document.getElementById("correlations").innerHTML = corString;
-
         // Find the selected currency in the data returned
         var selectItem = 0;
         for(i=0; i<dataReturned.length; i++) {

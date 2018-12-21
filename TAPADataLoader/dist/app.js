@@ -199,34 +199,51 @@ function _processCoinmetrics() {
               var _ref = _asyncToGenerator(
               /*#__PURE__*/
               regeneratorRuntime.mark(function _callee3(item) {
-                var ticker, coinmetricsData;
+                var ticker, coinmetricsData, result;
                 return regeneratorRuntime.wrap(function _callee3$(_context3) {
                   while (1) {
                     switch (_context3.prev = _context3.next) {
                       case 0:
                         ticker = item; // var coinmetricsData = await loadCoinmetricsFile(fileToProcess, ticker, fieldToSelect);
 
-                        _context3.prev = 1;
-                        _context3.next = 4;
+                        console.log("Processing coinmetrics file:", fileToProcess, " ticker:", ticker);
+                        coinmetricsData = "";
+                        _context3.prev = 3;
+                        _context3.next = 6;
                         return (0, _coinmetricsLoader.loadCoinmetricsFile)(fileToProcess, ticker, []);
 
-                      case 4:
+                      case 6:
                         coinmetricsData = _context3.sent;
-                        (0, _dbUtils.writeResultsToMongo)(coinmetricsData, "crypto", "marketdata.transaction_prices");
-                        _context3.next = 11;
+                        _context3.next = 12;
                         break;
 
-                      case 8:
-                        _context3.prev = 8;
-                        _context3.t0 = _context3["catch"](1);
-                        console.log("Error loading ticker:", ticker, " err:", _context3.t0);
+                      case 9:
+                        _context3.prev = 9;
+                        _context3.t0 = _context3["catch"](3);
+                        console.log("Error in loadCoinmetricsFile.");
 
-                      case 11:
+                      case 12:
+                        _context3.prev = 12;
+                        _context3.next = 15;
+                        return (0, _dbUtils.writeResultsToMongoSync)(coinmetricsData, "crypto", "marketdata.transaction_prices");
+
+                      case 15:
+                        result = _context3.sent;
+                        console.log("Write complete:", result);
+                        _context3.next = 22;
+                        break;
+
+                      case 19:
+                        _context3.prev = 19;
+                        _context3.t1 = _context3["catch"](12);
+                        console.log("Error in processCoinmetrics:", _context3.t1.message);
+
+                      case 22:
                       case "end":
                         return _context3.stop();
                     }
                   }
-                }, _callee3, this, [[1, 8]]);
+                }, _callee3, this, [[3, 9], [12, 19]]);
               }));
 
               return function (_x) {

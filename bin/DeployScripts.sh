@@ -1,3 +1,4 @@
+source ./bin/SetEnv.sh
 cd bin
 tar -zcf ../outbox/awsbin.tar.gz awsbin
 cd -

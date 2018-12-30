@@ -28,34 +28,10 @@ r$header$ticker
 r$header$ticker[1]
 str(head(r$data))
 
-# eth <- r$data[14][[1]]
-# btc <- r$data[15][[1]]
-# xem <- r$data[6][[1]]
-# ethcor <- cor(as.numeric(eth$txCount), as.numeric(eth$`price(USD)`), use="complete.obs")
-# btccor <- cor(as.numeric(btc$txCount), as.numeric(btc$`price(USD)`), use="complete.obs")
-# xemcor <- cor(as.numeric(xem$txCount), as.numeric(xem$`price(USD)`), use="complete.obs")
-# cor.test(as.numeric(eth$txCount), as.numeric(eth$`price(USD)`), use="complete.obs")
-# cor.test(as.numeric(btc$txCount), as.numeric(btc$`price(USD)`), use="complete.obs")
-# cor.test(as.numeric(xem$txCount), as.numeric(xem$`price(USD)`), use="complete.obs")
-# ct_eth <- cor.test(as.numeric(eth$txCount), as.numeric(eth$`price(USD)`), use="complete.obs")
-# ct_btc <- cor.test(as.numeric(btc$txCount), as.numeric(btc$`price(USD)`), use="complete.obs")
-# ct_xem <- cor.test(as.numeric(xem$txCount), as.numeric(xem$`price(USD)`), use="complete.obs")
-# print("ETH correlation summary")
-# ct_eth$estimate[[1]]
-# ct_eth$conf.int[1]
-# ct_eth$conf.int[2]
-# print("BTC correlation summary")
-# ct_btc$estimate[[1]]
-# ct_btc$conf.int[1]
-# ct_btc$conf.int[2]
-# print("XEM correlation summary")
-# ct_xem$estimate[[1]]
-# ct_xem$conf.int[1]
-# ct_xem$conf.int[2]
-# print("Write correlations to the DB")
 
 # Automation of data extraction from Mongo result set
-tickers <- c("eth", "btc", "ltc", "xem", "eos", "maid", "bat")
+start_time <- Sys.time()
+tickers <- c("eth", "btc", "ltc", "xem", "eos", "maid", "bat", "dgb")
 for(ticker in tickers) {
   curIdx <- match(ticker, r$header$ticker)
   curDataSet <- r$data[curIdx][[1]]
@@ -64,12 +40,5 @@ for(ticker in tickers) {
   print(ticker)
   print(ct)
 }
-
-#write_to_mongo("eth", ct_eth$estimate[[1]], toString(ct_eth))
-#write_to_mongo("btc", ct_btc$estimate[[1]], toString(ct_btc))
-#write_to_mongo("xem", ct_xem$estimate[[1]], toString(ct_xem))
-
-start_time <- Sys.time()
-ct_btc <- cor.test(as.numeric(btc$txCount), as.numeric(btc$`price(USD)`), use="complete.obs")
 end_time <- Sys.time()
-end_time - start_time
+print(end_time - start_time)

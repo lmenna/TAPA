@@ -47,7 +47,8 @@ router.get('/graph', (req, res) => {
 					{ value: 2, text: 'btc' },
 					{ value: 3, text: 'bat' },
 					{ value: 4, text: 'maid' },
-					{ value: 5, text: 'eos' }
+					{ value: 5, text: 'eos' },
+					{ value: 6, text: 'dgb' }
 	    ],
 			selectedCCY: ccy
 	};

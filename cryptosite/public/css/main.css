@@ -588,7 +588,7 @@ iframe {
 	margin-left: 0px;
 }
 #food-menu {
-	width: 350px;
+	width: auto;
 	height: 40px;
 	margin: auto;
 }

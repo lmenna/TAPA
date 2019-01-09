@@ -19,9 +19,14 @@ let maxSellArbXMR = 0;
 
 const timeInSecondsBetweenPriceChecks = 15;
 
+/* poloInternalCompare
+ * desc: Looks for arbitrage profits from scenarios where a coin1 is exchanged for coin2, coin2 exchanged for coin3 and then 
+ *       coin3 exchanged back into coin1.
+ *       This compare looks only within the Poloniex exchange.
+*/
 function poloInternalCompare() {
 
-  console.log("BEGIN: getPricingData");
+  console.log("BEGIN: poloInternalCompare");
   let xmlhttp = new XMLHttpRequest(),
     method = "GET",
     url = poloniexURL;
@@ -39,20 +44,24 @@ function poloInternalCompare() {
       let exchangeObject = JSON.parse(exchangeData);
       let coins = ["FOAM", "ZEC", "LTC", "ETH", "XRP", "STR", "XMR", "DOGE", "BCHABC", "BCHSV"];
       let baseStableCoin = "USDC";
-      analyzePrices(exchangeObject, baseStableCoin, coins, timeStamp);
+      analyzePoloBTCPrices(exchangeObject, baseStableCoin, coins, timeStamp);
       coins = ["BAT", "BNT", "DASH", "DOGE", "EOS", "ETC", "ETH", "GNT", "KNC", "LOOM", "LSK",
         "LTC", "MANA", "NXT", "QTUM", "REP", "SC", "SNT", "STR", "XMR", "XRP", "ZEC", "ZRX"];
       baseStableCoin = "USDT"; 
-      analyzePrices(exchangeObject, baseStableCoin, coins, timeStamp);
-      analyzeETHPrices(exchangeObject, timeStamp);
-      analyzeXMRPrices(exchangeObject, timeStamp);
+      analyzePoloBTCPrices(exchangeObject, baseStableCoin, coins, timeStamp);
+      analyzePoloETHPrices(exchangeObject, timeStamp);
+      analyzePoloXMRPrices(exchangeObject, timeStamp);
     }
   }
   xmlhttp.send();
-  console.log("END: getPricingData");
+  console.log("END: poloInternalCompare");
 }
 
-function analyzePrices(exchangePrices, baseStableCoin, coins, timeStamp) {
+/* analyzePoloBTCPrices
+ * desc: Takes the exchange prices from Poloniex and does the detailed compares to find arbitrage
+ *       within this exchange.  It does this for the BTC market.
+ */
+function analyzePoloBTCPrices(exchangePrices, baseStableCoin, coins, timeStamp) {
 
   let timeStampStr = timeStamp.getTime();
   console.log(`priceCheckCount:${numberOfChecks}|${baseStableCoin}|maxBuyArb:${maxBuyArb}|maxSellArb:${maxSellArb}`);
@@ -94,7 +103,11 @@ function analyzePrices(exchangePrices, baseStableCoin, coins, timeStamp) {
   });
 }
 
-function analyzeETHPrices(exchangePrices, timeStamp) {
+/* analyzePoloETHPrices
+ * desc: Takes the exchange prices from Poloniex and does the detailed compares to find arbitrage
+ *       within this exchange for their ETH market.
+ */
+function analyzePoloETHPrices(exchangePrices, timeStamp) {
 
   let timeStampStr = timeStamp.getTime();
   console.log(`priceCheckCount:${numberOfChecks}|ETH|maxBuyArb:N/A|maxSellArbETH:${maxSellArbETH}`);
@@ -121,11 +134,14 @@ function analyzeETHPrices(exchangePrices, timeStamp) {
         then use those BTC to buy ${AmtFinal} ${curCoin}`;
       console.log(instructions);
     }
-
   });
 }
 
-function analyzeXMRPrices(exchangePrices, timeStamp) {
+/* analyzePoloXMRPrices
+ * desc: Takes the exchange prices from Poloniex and does the detailed compares to find arbitrage
+ *       within this exchange for their XRM market.
+ */
+function analyzePoloXMRPrices(exchangePrices, timeStamp) {
 
   let timeStampStr = timeStamp.getTime();
   console.log(`priceCheckCount:${numberOfChecks}|XMR|maxBuyArb:N/A|maxSellArbXMR:${maxSellArbXMR}`);
@@ -152,19 +168,7 @@ function analyzeXMRPrices(exchangePrices, timeStamp) {
         then use those BTC to buy ${AmtFinal} ${curCoin}`;
       console.log(instructions);
     }
-
   });
-}
-
-/* findPricingAnomolies
- * desc: Called periodically from setInterval.  Will check through the market pricing data and notify
- *       when any pricing anomolies are detected.
- */
-function findPricingAnomolies() {
-
-  console.log("BEGIN: findPricingAnomolies activated at:", new Date());
-  getPricingData();
-  console.log("END: findPricingAnomolies finished at:", new Date());
 }
 
 async function runPoloCoinbaseCompare() {

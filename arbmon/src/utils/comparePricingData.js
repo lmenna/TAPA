@@ -1,15 +1,25 @@
+/* comparePricingData.js
+ * Consolidates function to compare crypto markets looking for significant arbitrage opportunities.
+ * Sends notifications when large arbitrage is detected.
+ */
 import {SendMessage} from "./sendEMail";
 
 // Set this to be a clear trading opportunity
 const arbEmailThresholdPercent = 1.25;
 // Set this to be the fees associated with trading
-const arbReportingThresholdPercent = 0.25;
+const arbReportingThresholdPercent = 0.0;
 
-
+/* formatTimestamp
+ * desc: Simple utility to truncate the output of long time stamps to include only the date and time parts.
+ */
 function formatTimestamp(timeStamp) {
   return(timeStamp.toString().slice(0,25));
 }
 
+/* comparePoloniexCoinbase
+ * desc: Main function called to compare the Poloniex and Coinbase crypto markets.
+ *       This function is exported and called be app.js
+ */
 function comparePoloniexCoinbase(poloData, cbData, coin) {
 
   var poloJSON = JSON.parse(poloData.exchangeData);
@@ -19,6 +29,10 @@ function comparePoloniexCoinbase(poloData, cbData, coin) {
   compareCurrencyPair(timeStamp, poloJSON, cbJSON, "USDC", coin)
 }
 
+/* compareCurrencyPair
+ * desc: Compares a currency pair between Poloniex and Coinbase.  Notifies when significant arbitrage opportunities
+ *       occur.
+ */
 function compareCurrencyPair(timeStamp, poloJSON, cbJSON, ccy1, ccy2) {
   let poloPair = ccy1+"_"+ccy2;
   let poloBuyAt = +poloJSON[poloPair].lowestAsk;
@@ -26,70 +40,33 @@ function compareCurrencyPair(timeStamp, poloJSON, cbJSON, ccy1, ccy2) {
   let arbOpportunity = cbSellAt-poloBuyAt;
   let arbPercent = 100*(cbSellAt-poloBuyAt)/( (cbSellAt+poloBuyAt) / 2);
   if(arbPercent > arbReportingThresholdPercent) {
-    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY Polo at: poloBuyAt: ${poloBuyAt} SELL Coinbase at: ${cbSellAt}, Amount: ${arbOpportunity}`;
+    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY Polo at: poloBuyAt: ${poloBuyAt.toFixed(8)} SELL Coinbase at: ${cbSellAt.toFixed(8)}, Amount: ${arbOpportunity.toFixed(7)}, ${arbPercent.toFixed(6)}%`;
     if (arbPercent > arbEmailThresholdPercent)
       SendMessage(`${poloPair}: BUY ${ccy2} at Poloniex and SELL at Coinbase`, msg);
     console.log(msg);
   }
   else {
-    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: poloBuyAt: ${poloBuyAt} compared to cbSellAt: ${cbSellAt}, DIFF: ${arbOpportunity.toFixed(6)}`)
+    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: poloBuyAt: ${poloBuyAt.toFixed(8)} compared to cbSellAt: ${cbSellAt.toFixed(8)}, DIFF: ${arbOpportunity.toFixed(7)}`)
   }
   let cbBuyAt = +cbJSON.asks[0][0];
   let poloSellAt = +poloJSON[poloPair].highestBid;
   arbOpportunity = poloSellAt-cbBuyAt;
   arbPercent = 100*(poloSellAt-cbBuyAt)/( (poloSellAt+cbBuyAt) / 2);
   if(arbPercent > arbReportingThresholdPercent) {
-    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY Coinbase at: cbBuyAt: ${cbBuyAt} SELL Polo at: ${poloSellAt}, Gain: ${arbOpportunity}`;
+    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY Coinbase at: cbBuyAt: ${cbBuyAt.toFixed(7)} SELL Polo at: ${poloSellAt.toFixed(7)}, Gain: ${arbOpportunity.toFixed(7)}, ${arbPercent.toFixed(6)}%`;
     if (arbPercent > arbEmailThresholdPercent) 
       SendMessage(`${poloPair}: BUY ${ccy2} at Coinbase and SELL at Poloniex`, msg);
     console.log(msg);
   }
   else {
-    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: cbBuyAt: ${cbBuyAt} compared to poloSellAt: ${poloSellAt}, DIFF: ${arbOpportunity.toFixed(6)}`);
+    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: cbBuyAt: ${cbBuyAt.toFixed(7)} compared to poloSellAt: ${poloSellAt.toFixed(7)}, DIFF: ${arbOpportunity.toFixed(7)}`);
   }
  }
 
-function comparePoloBittrexCcyPair(poloJSON, bittrexJSON, baseCcy, coin) {
-
-  let timeStamp = new Date();
-  let poloPair = baseCcy + "_" + coin.toUpperCase();
-  let poloBuyAt = +poloJSON[poloPair].lowestAsk;
-  let poloSellAt = +poloJSON[poloPair].highestBid;
-  let bittrexSellAt = bittrexJSON.result[0].Bid;
-  let bittrexBuyAt = bittrexJSON.result[0].Ask;
-  let arbOpportunity = poloSellAt-bittrexBuyAt;
-  if(arbOpportunity > arbReportingThreshold) {
-    let msg = `${timeStamp}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY ${coin} at Bittrex: bittrexBuyAt, ${bittrexBuyAt} SELL Polo at, ${poloSellAt}, Gain, ${arbOpportunity}`;
-    if (arbOpportunity > arbEmailThreshold)
-      SendMessage(`${poloPair}: BUY ${coin} at Bittrex and SELL at Poloniex`, msg);
-    console.log(msg);
-  }
-  else {
-    console.log(`${timeStamp}: Pair: ${poloPair}, Result: LOSS, Desc: bittrexBuyAt, ${bittrexBuyAt} is greater than poloSellAt, ${poloSellAt}. DIFF, ${arbOpportunity.toFixed(6)}`);
-  }
-  arbOpportunity = bittrexSellAt-poloBuyAt;
-  if(arbOpportunity > arbReportingThreshold) {
-    let msg = `${timeStamp}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY ${coin} at Polo: poloBuyAt, ${poloBuyAt} SELL Bittrex at, ${bittrexSellAt}, Gain, ${arbOpportunity}`;
-    if (arbOpportunity > arbEmailThreshold)
-      SendMessage(`${poloPair}: BUY ${coin} at Poloniex and SELL at Bittrex`, msg);
-    console.log(msg);
-  }
-  else {
-    console.log(`${timeStamp}: Pair: ${poloPair}, Result: LOSS, Desc: poloBuyAt, ${poloBuyAt} is greater than bittrexSellAt, ${bittrexSellAt}. DIFF, ${arbOpportunity.toFixed(6)}`);
-  }
-} 
-
-function comparePoloniexBittrex(poloniexData, bittrexData, basecoin, coins) {
-
-  let timeStamp = new Date();
-  var poloJSON = JSON.parse(poloniexData.exchangeData);
-  coins.forEach(coin => {
-    var bittrexJSON = JSON.parse(bittrexData[coin].exchangeData);
-    console.log(`${timeStamp}: PoloTime-BittrexTime: ${poloniexData.timeStamp.getTime()-bittrexData[coin].timeStamp.getTime()}.`);
-    comparePoloBittrexCcyPair(poloJSON, bittrexJSON, basecoin, coin);
-  });
-}
-
+ /* compareAllPoloniexBittrex
+  * desc: Takes the poloniex and bittrex data in JSON format and compares all overlaping markets for arbitrage.
+  *       Exported function called by the main app.js
+  */
 function compareAllPoloniexBittrex(poloJSON, bittrexJSON) {
 
   let reportingTimestamp = new Date();
@@ -105,6 +82,10 @@ function compareAllPoloniexBittrex(poloJSON, bittrexJSON) {
   }
 }
 
+/* comparePoloniexBittrexMktElement
+ * desc: Compares a particular market between the Poloniex and Bittrex exchanges.  Sedn notifications when
+ *       significant arbitrage opportunities exist.
+ */
 function comparePoloniexBittrexMktElement(poloJSON, bittrexJSON, poloPair, timeStamp) {
 
   let poloBuyAt = +poloJSON.lowestAsk;
@@ -114,31 +95,34 @@ function comparePoloniexBittrexMktElement(poloJSON, bittrexJSON, poloPair, timeS
   let arbOpportunity = poloSellAt-bittrexBuyAt;
   let arbPercent = 100*(poloSellAt-bittrexBuyAt)/( (poloSellAt+bittrexBuyAt) / 2);
   if(arbPercent > arbReportingThresholdPercent) {
-    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY at Bittrex: bittrexBuyAt, ${bittrexBuyAt} SELL Polo at, ${poloSellAt}, Gain, ${arbOpportunity.toFixed(6)}, ${arbPercent.toFixed(6)}%`;
+    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY at Bittrex: bittrexBuyAt, ${bittrexBuyAt.toFixed(8)} SELL Polo at, ${poloSellAt.toFixed(8)}, Gain, ${arbOpportunity.toFixed(7)}, ${arbPercent.toFixed(6)}%`;
     console.log(msg);
     if (arbPercent > arbEmailThresholdPercent) {
-      let msgBody = `${poloPair}\n\n${poloPair} BUY at Bittrex for ${bittrexBuyAt}.  Sell at Poloniex for ${poloSellAt}\n`;
+      let msgBody = `${poloPair}\n\n${poloPair} BUY at Bittrex for ${bittrexBuyAt.toFixed(8)}.  Sell at Poloniex for ${poloSellAt.toFixed(8)}\n`;
       SendMessage(`${poloPair}: BUY at Bittrex and SELL at Poloniex`, msgBody);
     }
   }
   else {
-    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: bittrexBuyAt, ${bittrexBuyAt} is greater than poloSellAt, ${poloSellAt}. DIFF, ${arbOpportunity.toFixed(6)}`);
+    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: bittrexBuyAt, ${bittrexBuyAt.toFixed(8)} is greater than poloSellAt, ${poloSellAt.toFixed(8)}, DIFF, ${arbOpportunity.toFixed(6)}`);
   }
   arbOpportunity = bittrexSellAt-poloBuyAt;
   arbPercent = 100*(bittrexSellAt-poloBuyAt)/( (bittrexSellAt+poloBuyAt) / 2);
   if(arbPercent > arbReportingThresholdPercent) {
-    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY at Polo: poloBuyAt, ${poloBuyAt} SELL Bittrex at, ${bittrexSellAt}, Gain, ${arbOpportunity.toFixed(6)}, ${arbPercent.toFixed(6)}%`;
+    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY at Polo: poloBuyAt, ${poloBuyAt.toFixed(8)} SELL Bittrex at, ${bittrexSellAt.toFixed(8)}, Gain, ${arbOpportunity.toFixed(7)}, ${arbPercent.toFixed(6)}%`;
     console.log(msg);
     if (arbPercent > arbEmailThresholdPercent) {
-      let msgBody = `${poloPair}\n\n${poloPair} BUY at Polo for ${poloBuyAt}.  Sell at Bittrex for ${bittrexSellAt}`;
+      let msgBody = `${poloPair}\n\n${poloPair} BUY at Polo for ${poloBuyAt.toFixed(8)}.  Sell at Bittrex for ${bittrexSellAt.toFixed(8)}`;
       SendMessage(`${poloPair}: BUY at Poloniex and SELL at Bittrex`, msgBody);
     }
   }
   else {
-    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: poloBuyAt, ${poloBuyAt} is greater than bittrexSellAt, ${bittrexSellAt}. DIFF, ${arbOpportunity.toFixed(6)}`);
+    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: poloBuyAt, ${poloBuyAt.toFixed(8)} is greater than bittrexSellAt, ${bittrexSellAt.toFixed(8)}. DIFF, ${arbOpportunity.toFixed(7)}`);
   }
 }
 
+/* poloMktFromBittrexName
+ * desc: Converts a Bittrex crypto currency pair into the Poloniex pair.
+ */
 function poloMktFromBittrexName(bittrexMktName) {
   return(bittrexMktName.replace("-", "_"));
 }

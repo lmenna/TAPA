@@ -1,22 +1,30 @@
 require("@babel/polyfill");
 
-var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-var threshold = 1.01;
-var numberOfChecks = 0;
-var intervalHandel = -1;
-var maxBuyArb = 0;
-var maxSellArb = 0;
-var maxSellArbETH = 0;
-var maxSellArbXMR = 0;
+import {getExchangeData} from "./utils/getCryptoData.js";
+import {comparePoloniexCoinbase, compareAllPoloniexBittrex} from "./utils/comparePricingData";
+
+let XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+
+const poloniexURL = "https://poloniex.com/public?command=returnTicker"; 
+const coinbaseURL = "https://api.pro.coinbase.com/products"; 
+const bittrexURL = "https://bittrex.com/api/v1.1/public/getmarketsummary";
+const bittrexURLAll = "https://bittrex.com/api/v1.1/public/getmarketsummaries";
+const threshold = 1.01;
+let numberOfChecks = 0;
+let intervalHandel = -1;
+let maxBuyArb = 0;
+let maxSellArb = 0;
+let maxSellArbETH = 0;
+let maxSellArbXMR = 0;
 
 const timeInSecondsBetweenPriceChecks = 15;
 
-function getPricingData() {
+function poloInternalCompare() {
 
   console.log("BEGIN: getPricingData");
-  var xmlhttp = new XMLHttpRequest(),
+  let xmlhttp = new XMLHttpRequest(),
     method = "GET",
-    url = "https://poloniex.com/public?command=returnTicker";
+    url = poloniexURL;
 
   console.log("Loading data from : Http.send(", url, ")");
   xmlhttp.open(method, url, true);
@@ -38,13 +46,6 @@ function getPricingData() {
       analyzePrices(exchangeObject, baseStableCoin, coins, timeStamp);
       analyzeETHPrices(exchangeObject, timeStamp);
       analyzeXMRPrices(exchangeObject, timeStamp);
-      if (numberOfChecks===1 || numberOfChecks%5===0) {
-        if (intervalHandel!=-1)
-          clearInterval(intervalHandel);
-        let newInteral = 1000*(timeInSecondsBetweenPriceChecks + 20*Math.random());
-        console.log(`Resetting the timer interval to ${newInteral/1000} seconds.` );
-        intervalHandel = setInterval( findPricingAnomolies,  newInteral);
-      }
     }
   }
   xmlhttp.send();
@@ -124,7 +125,6 @@ function analyzeETHPrices(exchangePrices, timeStamp) {
   });
 }
 
-
 function analyzeXMRPrices(exchangePrices, timeStamp) {
 
   let timeStampStr = timeStamp.getTime();
@@ -167,7 +167,72 @@ function findPricingAnomolies() {
   console.log("END: findPricingAnomolies finished at:", new Date());
 }
 
-console.log("BEGIN: Main process to monitor prices starting at:", new Date());
-console.log(`Will check prices every ${timeInSecondsBetweenPriceChecks} seconds` );
-getPricingData();
-console.log("END: Main process to monitor prices ending at:", new Date());
+async function runPoloCoinbaseCompare() {
+  let poloniexData = await getExchangeData(poloniexURL);
+  let coinbaseDataZEC = await getExchangeData(coinbaseURL+"/ZEC-USDC/book");
+  let coinbaseDataETH = await getExchangeData(coinbaseURL+"/ETH-USDC/book");
+  let coinbaseDataBTC = await getExchangeData(coinbaseURL+"/BTC-USDC/book");
+  comparePoloniexCoinbase(poloniexData, coinbaseDataZEC, "ZEC");
+  comparePoloniexCoinbase(poloniexData, coinbaseDataETH, "ETH");
+  comparePoloniexCoinbase(poloniexData, coinbaseDataBTC, "BTC");
+}
+
+async function runPoloBittrexCompare() {
+
+  numberOfChecks++;
+  // Poloniex section - All coins from one request
+  let poloniexData = await getExchangeData(poloniexURL);
+  // Bittrex section - All coins from one request.
+  // Bittrex market summary - All coins from one request.
+  let bittrexALL = await getExchangeData(bittrexURLAll);
+  let bittrexJSON = JSON.parse(bittrexALL.exchangeData);
+  let bittrexBTCCoins = {
+    BTC: ["ardr", "bat", "bnt", "burst", "cvc", "dash", "dgb", "doge",
+    "etc", "eth", "fct", "game", "gnt", "lbc", "loom", "lsk", "ltc", "mana", "nav", "nmr", "nxt", "omg",
+    "poly", "ppc", "qtum", "rep", "sbd", "sc", "snt", "steem", "storj", "xrp", "sys", "strat", "via", "vtc",
+    "xcp", "xem", "xmr", "xrp", "zec", "zrx"],
+    ETH: ["BAT", "BNT", "CVC", "ETC", "GNT", "MANA", "OMG", "QTUM", "REP", "SNT", "ZEC", "ZRX"],
+    USDT: ["BAT", "BTC", "DASH"]
+  };
+  let baseMarkets = ["BTC", "ETH", "USDT"];
+  baseMarkets.forEach(baseMkt => {
+    console.log("Processing basemkt:", baseMkt);
+    let bittrexTrimmed = {};
+    bittrexJSON.result.forEach(market => {
+      bittrexBTCCoins[baseMkt].forEach(coin => {
+        let MarketName = baseMkt+"-"+coin.toUpperCase();
+        //console.log("MarketName:", MarketName);
+        if (market.MarketName===MarketName) {
+          bittrexTrimmed[MarketName] = market;
+        }
+      });
+    });
+    let bittrexCompare = {};
+    bittrexCompare.timeStamp = bittrexALL.timeStamp;
+    bittrexCompare.exchangeData = bittrexTrimmed;
+    compareAllPoloniexBittrex(poloniexData, bittrexCompare);
+  });
+  console.log(`Compare cycle ${numberOfChecks} complete.`)
+}
+
+// Set the default copare to run.
+let compareToRun =  runPoloBittrexCompare;
+if (process.argv.length>=3) {
+  if (process.argv[2]==="polointernal") {
+    console.log(`Running polointernal compare.`);
+    compareToRun = poloInternalCompare;
+  }
+  else {
+    if (process.argv[2]==="polocoinbase") {
+      compareToRun = runPoloCoinbaseCompare;
+      console.log("Running PoloCoinbaseCompare compare.");
+    }
+    else {
+      console.log("Running default polo bittrex compare.");
+    }
+  }
+}
+let newInteral = 1000*(timeInSecondsBetweenPriceChecks + 20*Math.random());
+console.log(`Setting the timer interval to ${newInteral/1000} seconds.` );
+compareToRun();
+intervalHandel = setInterval(compareToRun, newInteral);

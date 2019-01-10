@@ -92,31 +92,36 @@ function comparePoloniexBittrexMktElement(poloJSON, bittrexJSON, poloPair, timeS
   let poloSellAt = +poloJSON.highestBid;
   let bittrexSellAt = +bittrexJSON.Bid;
   let bittrexBuyAt = +bittrexJSON.Ask;
-  let arbOpportunity = poloSellAt-bittrexBuyAt;
-  let arbPercent = 100*(poloSellAt-bittrexBuyAt)/( (poloSellAt+bittrexBuyAt) / 2);
+  outputArbResults(poloBuyAt, poloSellAt, bittrexSellAt, bittrexBuyAt, "Bittrex", poloPair, timeStamp);
+}
+
+function outputArbResults(poloBuyAt, poloSellAt, exchange2SellAt, exchange2BuyAt, exchange2Name, poloPair, timeStamp) {
+
+  let arbOpportunity = poloSellAt-exchange2BuyAt;
+  let arbPercent = 100*(poloSellAt-exchange2BuyAt)/( (poloSellAt+exchange2BuyAt) / 2);
   if(arbPercent > arbReportingThresholdPercent) {
-    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY at Bittrex: bittrexBuyAt, ${bittrexBuyAt.toFixed(8)} SELL Polo at, ${poloSellAt.toFixed(8)}, Gain, ${arbOpportunity.toFixed(7)}, ${arbPercent.toFixed(6)}%`;
+    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY at ${exchange2Name}: ${exchange2BuyAt.toFixed(8)} SELL Polo at, ${poloSellAt.toFixed(8)}, Gain, ${arbOpportunity.toFixed(7)}, ${arbPercent.toFixed(6)}%`;
     console.log(msg);
     if (arbPercent > arbEmailThresholdPercent) {
-      let msgBody = `${poloPair}\n\n${poloPair} BUY at Bittrex for ${bittrexBuyAt.toFixed(8)}.  Sell at Poloniex for ${poloSellAt.toFixed(8)}\n`;
-      SendMessage(`${poloPair}: BUY at Bittrex and SELL at Poloniex`, msgBody);
+      let msgBody = `${poloPair} BUY at ${exchange2Name} for ${exchange2BuyAt.toFixed(8)}.  Sell at Poloniex for ${poloSellAt.toFixed(8)}, Gain: ${arbPercent.toFixed(6)}%`;
+      SendMessage(`${poloPair}: BUY at ${exchange2Name} and SELL at Poloniex`, msgBody);
     }
   }
   else {
-    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: bittrexBuyAt, ${bittrexBuyAt.toFixed(8)} is greater than poloSellAt, ${poloSellAt.toFixed(8)}, DIFF, ${arbOpportunity.toFixed(6)}`);
+    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: ${exchange2Name}, ${exchange2BuyAt.toFixed(8)} is greater than poloSellAt, ${poloSellAt.toFixed(8)}, DIFF, ${arbOpportunity.toFixed(6)}`);
   }
-  arbOpportunity = bittrexSellAt-poloBuyAt;
-  arbPercent = 100*(bittrexSellAt-poloBuyAt)/( (bittrexSellAt+poloBuyAt) / 2);
+  arbOpportunity = exchange2SellAt-poloBuyAt;
+  arbPercent = 100*(exchange2SellAt-poloBuyAt)/( (exchange2SellAt+poloBuyAt) / 2);
   if(arbPercent > arbReportingThresholdPercent) {
-    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY at Polo: poloBuyAt, ${poloBuyAt.toFixed(8)} SELL Bittrex at, ${bittrexSellAt.toFixed(8)}, Gain, ${arbOpportunity.toFixed(7)}, ${arbPercent.toFixed(6)}%`;
+    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY at Polo: poloBuyAt, ${poloBuyAt.toFixed(8)} SELL ${exchange2Name} at, ${exchange2SellAt.toFixed(8)}, Gain, ${arbOpportunity.toFixed(7)}, ${arbPercent.toFixed(6)}%`;
     console.log(msg);
     if (arbPercent > arbEmailThresholdPercent) {
-      let msgBody = `${poloPair}\n\n${poloPair} BUY at Polo for ${poloBuyAt.toFixed(8)}.  Sell at Bittrex for ${bittrexSellAt.toFixed(8)}`;
-      SendMessage(`${poloPair}: BUY at Poloniex and SELL at Bittrex`, msgBody);
+      let msgBody = `${poloPair} BUY at Polo for ${poloBuyAt.toFixed(8)}.  Sell at ${exchange2Name} for ${exchange2SellAt.toFixed(8)}, Gain: ${arbPercent.toFixed(6)}%`;
+      SendMessage(`${poloPair}: BUY at Poloniex and SELL at ${exchange2Name}`, msgBody);
     }
   }
   else {
-    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: poloBuyAt, ${poloBuyAt.toFixed(8)} is greater than bittrexSellAt, ${bittrexSellAt.toFixed(8)}. DIFF, ${arbOpportunity.toFixed(7)}`);
+    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: poloBuyAt, ${poloBuyAt.toFixed(8)} is greater than ${exchange2Name}SellAt, ${exchange2SellAt.toFixed(8)}. DIFF, ${arbOpportunity.toFixed(7)}`);
   }
 }
 
@@ -127,4 +132,48 @@ function poloMktFromBittrexName(bittrexMktName) {
   return(bittrexMktName.replace("-", "_"));
 }
 
-export {comparePoloniexCoinbase, compareAllPoloniexBittrex};
+/* compareAllPoloniexHitbtc
+*  desc: Takes the poloniex and hitbtc data in JSON format and compares all overlaping markets for arbitrage.
+*       Exported function called by the main app.js
+*/
+function compareAllPoloniexHitbtc(poloJSON, hitbtcJSON) {
+  
+  let reportingTimestamp = new Date();
+  let poloTimestamp = poloJSON.timeStamp;
+  let poloAllMarkets = JSON.parse(poloJSON.exchangeData);
+  let hitbtcTimestamp = hitbtcJSON.timeStamp;
+  console.log(poloTimestamp);
+  console.log(hitbtcTimestamp);
+  for(let hitbtcMkt in hitbtcJSON.exchangeData){
+    let poloMktName = poloMktFromHitbtcName(hitbtcMkt);
+    let poloMktElement = poloAllMarkets[poloMktName];
+    comparePoloniexHitbtcMktElement(poloMktElement, hitbtcJSON.exchangeData[hitbtcMkt], poloMktName, reportingTimestamp);
+  }
+}
+
+function comparePoloniexHitbtcMktElement(poloMktElement, hitbtcMktElement, poloMktName, reportingTimestamp) {
+
+  let poloBuyAt = +poloMktElement.lowestAsk;
+  let poloSellAt = +poloMktElement.highestBid;
+  let hitbtcSellAt = +hitbtcMktElement.bid;
+  let hitbtcBuyAt = +hitbtcMktElement.ask;
+  outputArbResults(poloBuyAt, poloSellAt, hitbtcSellAt, hitbtcBuyAt, "Hitbtc", poloMktName, reportingTimestamp);
+}
+
+function poloMktFromHitbtcName(hitbtcMktName) {
+
+  const poloMktNames = {
+    BCNBTC:   "BTC_BCN",
+    DASHBTC:  "BTC_DASH",
+    DOGEBTC:  "BTC_DOGE",
+    LSKBTC:   "BTC_LSK",
+    MAIDBTC:  "BTC_MAID",
+    REPBTC:   "BTC_REP",
+    XEMBTC:   "BTC_XEM",
+    ETHBTC:   "BTC_ETH",
+    ZECETH:   "ETH_ZEC"
+  };
+  return(poloMktNames[hitbtcMktName]);
+}
+
+export {comparePoloniexCoinbase, compareAllPoloniexBittrex, compareAllPoloniexHitbtc};

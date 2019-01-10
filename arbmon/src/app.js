@@ -1,14 +1,14 @@
 require("@babel/polyfill");
 
 import {getExchangeData} from "./utils/getCryptoData.js";
-import {comparePoloniexCoinbase, compareAllPoloniexBittrex} from "./utils/comparePricingData";
+import {comparePoloniexCoinbase, compareAllPoloniexBittrex, compareAllPoloniexHitbtc} from "./utils/comparePricingData";
 
 let XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 
 const poloniexURL = "https://poloniex.com/public?command=returnTicker"; 
 const coinbaseURL = "https://api.pro.coinbase.com/products"; 
-const bittrexURL = "https://bittrex.com/api/v1.1/public/getmarketsummary";
 const bittrexURLAll = "https://bittrex.com/api/v1.1/public/getmarketsummaries";
+const hitbtcURL = "https://api.hitbtc.com/api/2/public/ticker";
 const threshold = 1.01;
 let numberOfChecks = 0;
 let intervalHandel = -1;
@@ -219,6 +219,38 @@ async function runPoloBittrexCompare() {
   console.log(`Compare cycle ${numberOfChecks} complete.`)
 }
 
+
+async function runPoloHitbtcCompare() {
+
+  numberOfChecks++;
+  // Poloniex section - All coins from one request
+  let poloniexData = await getExchangeData(poloniexURL);
+  // Bittrex section - All coins from one request.
+  // Bittrex market summary - All coins from one request.
+  let hitbtcData = await getExchangeData(hitbtcURL);  
+  let hitbtcJSON = JSON.parse(hitbtcData.exchangeData);
+  let hitbtcMarkets = ["ETHBTC", "LSKBTC", "DASHBTC", "ZECETH",
+  "BCNBTC",
+  "DASHBTC",
+  "DOGEBTC",
+  "LSKBTC",
+  "MAIDBTC",
+  "REPBTC",
+  "XEMBTC"];
+
+  let hitbtcTrimmed = {};
+  hitbtcMarkets.forEach(market => {
+    hitbtcJSON.forEach(exchangeData => {
+      if(exchangeData.symbol===market)
+        hitbtcTrimmed[market] = exchangeData;
+    });     
+  });
+  let hitbtcCompare = {};
+  hitbtcCompare.timeStamp = hitbtcData.timeStamp;
+  hitbtcCompare.exchangeData = hitbtcTrimmed;
+  compareAllPoloniexHitbtc(poloniexData, hitbtcCompare);
+}
+
 // Set the default copare to run.
 let compareToRun =  runPoloBittrexCompare;
 if (process.argv.length>=3) {
@@ -229,9 +261,14 @@ if (process.argv.length>=3) {
   else {
     if (process.argv[2]==="polocoinbase") {
       compareToRun = runPoloCoinbaseCompare;
-      console.log("Running PoloCoinbaseCompare compare.");
+      console.log("Running PoloCoinbaseCompare.");
     }
-    else {
+    else if (process.argv[2]==="polohitbtc") {
+      compareToRun = runPoloHitbtcCompare;
+      console.log("Running PoloHitbtcCompare.")
+    }
+    else
+    {
       console.log("Running default polo bittrex compare.");
     }
   }

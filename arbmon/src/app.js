@@ -1,7 +1,8 @@
 require("@babel/polyfill");
 
 import {getExchangeData} from "./utils/getCryptoData.js";
-import {comparePoloniexCoinbase, compareAllPoloniexBittrex, compareAllPoloniexHitbtc} from "./utils/comparePricingData";
+import {comparePoloniexCoinbase, compareAllPoloniexBittrex, compareAllPoloniexHitbtc,
+  compareAllPoloniexYobit} from "./utils/comparePricingData";
 
 let XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 
@@ -9,6 +10,7 @@ const poloniexURL = "https://poloniex.com/public?command=returnTicker";
 const coinbaseURL = "https://api.pro.coinbase.com/products"; 
 const bittrexURLAll = "https://bittrex.com/api/v1.1/public/getmarketsummaries";
 const hitbtcURL = "https://api.hitbtc.com/api/2/public/ticker";
+const yobitBaseURL = "https://yobit.net/api/3/ticker/"
 const threshold = 1.01;
 let numberOfChecks = 0;
 let intervalHandel = -1;
@@ -191,12 +193,15 @@ async function runPoloBittrexCompare() {
   let bittrexALL = await getExchangeData(bittrexURLAll);
   let bittrexJSON = JSON.parse(bittrexALL.exchangeData);
   let bittrexBTCCoins = {
-    BTC: ["ardr", "bat", "bnt", "burst", "cvc", "dash", "dgb", "doge",
-    "etc", "eth", "fct", "game", "gnt", "lbc", "loom", "lsk", "ltc", "mana", "nav", "nmr", "nxt", "omg",
-    "poly", "ppc", "qtum", "rep", "sbd", "sc", "snt", "steem", "storj", "xrp", "sys", "strat", "via", "vtc",
-    "xcp", "xem", "xmr", "xrp", "zec", "zrx"],
-    ETH: ["BAT", "BNT", "CVC", "ETC", "GNT", "MANA", "OMG", "QTUM", "REP", "SNT", "ZEC", "ZRX"],
-    USDT: ["BAT", "BTC", "DASH"]
+    BTC: ["ardr", "bat", "bnt", "burst", "cvc", "dash", "dcr", "dgb", "doge", "etc", 
+    "eth", "fct", "game", "gnt", "lbc", "loom", "lsk", "ltc", "mana", "nav", 
+    "nmr", "nxt", "omg", "poly", "ppc", "qtum", "rep", "sbd", "sc", "snt", 
+    "steem", "storj", "strat", "sys", "via", "vtc", "xcp", "xem", "xlm", "xmr", 
+    "xrp", "zec", "zrx"],
+    ETH: ["BAT", "BNT", "CVC", "ETC", "GNT", "MANA", "OMG", "QTUM", 
+      "REP", "SNT", "ZEC", "ZRX"],
+    USDT: ["BAT", "BTC", "DASH", "DOGE", "LTC", "XMR", "XRP"]
+
   };
   let baseMarkets = ["BTC", "ETH", "USDT"];
   baseMarkets.forEach(baseMkt => {
@@ -229,14 +234,13 @@ async function runPoloHitbtcCompare() {
   // Bittrex market summary - All coins from one request.
   let hitbtcData = await getExchangeData(hitbtcURL);  
   let hitbtcJSON = JSON.parse(hitbtcData.exchangeData);
-  let hitbtcMarkets = ["ETHBTC", "LSKBTC", "DASHBTC", "ZECETH",
-  "BCNBTC",
-  "DASHBTC",
-  "DOGEBTC",
-  "LSKBTC",
-  "MAIDBTC",
-  "REPBTC",
-  "XEMBTC"];
+  let hitbtcMarkets = [
+    "BCNBTC", "BNTUSDT", "DASHBTC", "DASHUSDT", "DGBBTC", "DOGEBTC", 
+    "DOGEUSDT", "EOSBTC", "EOSUSDT", "ETCUSDT", "ETHBTC", 
+    "ETHUSDT", "LSKBTC","MAIDBTC",
+    "MANABTC", "OMGBTC", "PPCBTC", "QTUMPPC", "REPBTC", 
+    "REPUSDT", "XEMBTC", "ZECETH" 
+  ];
 
   let hitbtcTrimmed = {};
   hitbtcMarkets.forEach(market => {
@@ -250,6 +254,42 @@ async function runPoloHitbtcCompare() {
   hitbtcCompare.exchangeData = hitbtcTrimmed;
   compareAllPoloniexHitbtc(poloniexData, hitbtcCompare);
 }
+
+
+async function runPoloYobitCompare() {
+
+  numberOfChecks++;
+  // Poloniex section - All coins from one request
+  let poloniexData = await getExchangeData(poloniexURL);
+  // Bittrex section - All coins from one request.
+  // Bittrex market summary - All coins from one request.
+  let yobitMarkets = [
+    "ltc_btc", "nmc_btc", "nmr_btc"
+  ];
+  let tickerList = "";
+  for(let i=0; i<yobitMarkets.length; i++) {
+    tickerList += yobitMarkets[i];
+    if (i!=yobitMarkets.length-1)
+      tickerList += "-";
+  }
+  let yobitURL = yobitBaseURL + tickerList;
+  console.log("Run query for data at:", yobitURL);
+  let yobitData = await getExchangeData(yobitURL);  
+  console.log("yobitData:", yobitData);
+  compareAllPoloniexYobit(poloniexData, yobitData);
+  // let hitbtcTrimmed = {};
+  // hitbtcMarkets.forEach(market => {
+  //   hitbtcJSON.forEach(exchangeData => {
+  //     if(exchangeData.symbol===market)
+  //       hitbtcTrimmed[market] = exchangeData;
+  //   });     
+  // });
+  // let hitbtcCompare = {};
+  // hitbtcCompare.timeStamp = hitbtcData.timeStamp;
+  // hitbtcCompare.exchangeData = hitbtcTrimmed;
+  // compareAllPoloniexHitbtc(poloniexData, hitbtcCompare);
+}
+
 
 // Set the default copare to run.
 let compareToRun =  runPoloBittrexCompare;
@@ -266,6 +306,10 @@ if (process.argv.length>=3) {
     else if (process.argv[2]==="polohitbtc") {
       compareToRun = runPoloHitbtcCompare;
       console.log("Running PoloHitbtcCompare.")
+    }
+    else if (process.argv[2]==="poloyobit") {
+      compareToRun = runPoloYobitCompare;
+      console.log("Running runPoloYobitCompare.")
     }
     else
     {

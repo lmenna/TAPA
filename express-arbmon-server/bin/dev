@@ -1,0 +1,2 @@
+require('@babel/babel-register')
+require('../src/app')

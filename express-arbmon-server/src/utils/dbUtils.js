@@ -10,7 +10,7 @@ import { MongoClient } from 'mongodb';
  * desc: Reads ETH data from MongoDB
  * return: json block of data for ETH daily transaction activity
  */
- async function getMostRecentETHData() {
+async function getMostRecentETHData() {
   var url = process.env.URLEth;
   if (url==undefined || url==="") {
     console.log("MongoDB url not set in the environment.");
@@ -23,6 +23,31 @@ import { MongoClient } from 'mongodb';
       client = await MongoClient.connect(url, { useNewUrlParser: true });
       db = client.db("ethereum");
       return await db.collection("eth_transactions").find({}).toArray();
+    } finally {
+      client.close();
+    }
+  }
+}
+
+/* getArbitrageData()
+ * desc: Reads crypto arbitrage data from the mongoDB
+ * return: json block with arbitrage data for all markets
+ */
+async function getArbitrageData() {
+  var url = process.env.URLCrypto;
+  if (url==undefined || url==="") {
+    console.log("MongoDB url not set in the environment.");
+    console.log("Try running source SetMongoEnv.sh prior to running this.");
+  }
+  else {
+    var client;
+    var db;
+    try {
+      client = await MongoClient.connect(url, { useNewUrlParser: true });
+      db = client.db("crypto");
+      console.log("getArbitrageData - marketdata.arbmon");
+      let results = await db.collection("marketdata.arbmon").find({}).toArray();
+      return(results); 
     } finally {
       client.close();
     }
@@ -50,6 +75,36 @@ async function writeResultsToMongo(dataToWrite, targetDB, targetCollection) {
       db = client.db(targetDB);
       console.log("Writing results to", targetCollection);
       await db.collection(targetCollection).insertOne(dataToWrite);
+    }
+    catch(err) {
+      console.log("Error writing to DB:", err);
+    }
+    finally {
+      if(client!==undefined)
+        client.close();
+    }
+  }
+}
+
+/* updateResultsInMongo()
+ * desc: Updates an existing record in the database.  If record doesn't exist it is created.
+ * param: dataToWrite - the json block to write to MongoDB.
+ *
+ */
+async function updateResultsInMongo(key, dataToWrite, targetDB, targetCollection) {
+
+  var url = process.env.URLCrypto;
+  if (url==undefined || url==="") {
+    console.log("MongoDB url not set in the environment.");
+    console.log("Try running source SetMongoEnv.sh prior to running this.");
+  }
+  else {
+    var client;
+    var db;
+    try {
+      client = await MongoClient.connect(url, { useNewUrlParser: true });
+      db = client.db(targetDB);
+      await db.collection(targetCollection).updateOne(key, {$set: dataToWrite}, {upsert:true, w: 1});
     }
     catch(err) {
       console.log("Error writing to DB:", err);
@@ -100,9 +155,9 @@ async function writeResultsToMongoSync(dataToWrite, targetDB, targetCollection) 
   });
 }
 
-/* writeResultsToMongo()
- * desc: Writes results from the google BigQuery into MongoDB on the cloud
- * param: dataToWrite - the json block to write to MongoDB.
+/* removeCollectionFromMongo()
+ * desc: Removes an entire collection from the database.
+ * param: targetCollection - the collection to remove.
  *
  */
 async function removeCollectionFromMongo(targetDB, targetCollection) {
@@ -132,4 +187,4 @@ async function removeCollectionFromMongo(targetDB, targetCollection) {
 }
 
 
-export {writeResultsToMongo, getMostRecentETHData, removeCollectionFromMongo, writeResultsToMongoSync};
+export {getArbitrageData, updateResultsInMongo, writeResultsToMongo, getMostRecentETHData, removeCollectionFromMongo, writeResultsToMongoSync};

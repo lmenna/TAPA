@@ -2,12 +2,18 @@
  * Consolidates function to compare crypto markets looking for significant arbitrage opportunities.
  * Sends notifications when large arbitrage is detected.
  */
+
 import {SendMessage} from "./sendEMail";
+import {writeResultsToMongo, updateResultsInMongo} from "./dbUtils";
 
 // Set this to be a clear trading opportunity
 const arbEmailThresholdPercent = 1.25;
 // Set this to be the fees associated with trading
 const arbReportingThresholdPercent = 0.0;
+// Control output to DB
+let dbWriteEnabled = true;
+// Control reported output
+let reportLoses = false;
 
 /* formatTimestamp
  * desc: Simple utility to truncate the output of long time stamps to include only the date and time parts.
@@ -36,31 +42,10 @@ function comparePoloniexCoinbase(poloData, cbData, coin) {
 function compareCurrencyPair(timeStamp, poloJSON, cbJSON, ccy1, ccy2) {
   let poloPair = ccy1+"_"+ccy2;
   let poloBuyAt = +poloJSON[poloPair].lowestAsk;
-  let cbSellAt = +cbJSON.bids[0][0];
-  let arbOpportunity = cbSellAt-poloBuyAt;
-  let arbPercent = 100*(cbSellAt-poloBuyAt)/( (cbSellAt+poloBuyAt) / 2);
-  if(arbPercent > arbReportingThresholdPercent) {
-    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY Polo at: poloBuyAt: ${poloBuyAt.toFixed(8)} SELL Coinbase at: ${cbSellAt.toFixed(8)}, Amount: ${arbOpportunity.toFixed(7)}, ${arbPercent.toFixed(6)}%`;
-    if (arbPercent > arbEmailThresholdPercent)
-      SendMessage(`${poloPair}: BUY ${ccy2} at Poloniex and SELL at Coinbase`, msg);
-    console.log(msg);
-  }
-  else {
-    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: poloBuyAt: ${poloBuyAt.toFixed(8)} compared to cbSellAt: ${cbSellAt.toFixed(8)}, DIFF: ${arbOpportunity.toFixed(7)}`)
-  }
-  let cbBuyAt = +cbJSON.asks[0][0];
   let poloSellAt = +poloJSON[poloPair].highestBid;
-  arbOpportunity = poloSellAt-cbBuyAt;
-  arbPercent = 100*(poloSellAt-cbBuyAt)/( (poloSellAt+cbBuyAt) / 2);
-  if(arbPercent > arbReportingThresholdPercent) {
-    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY Coinbase at: cbBuyAt: ${cbBuyAt.toFixed(7)} SELL Polo at: ${poloSellAt.toFixed(7)}, Gain: ${arbOpportunity.toFixed(7)}, ${arbPercent.toFixed(6)}%`;
-    if (arbPercent > arbEmailThresholdPercent) 
-      SendMessage(`${poloPair}: BUY ${ccy2} at Coinbase and SELL at Poloniex`, msg);
-    console.log(msg);
-  }
-  else {
-    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: cbBuyAt: ${cbBuyAt.toFixed(7)} compared to poloSellAt: ${poloSellAt.toFixed(7)}, DIFF: ${arbOpportunity.toFixed(7)}`);
-  }
+  let coinbaseSellAt = +cbJSON.bids[0][0];
+  let coinbaseBuyAt = +cbJSON.asks[0][0];
+  outputArbResults(poloBuyAt, poloSellAt, coinbaseSellAt, coinbaseBuyAt, "Coinbase", poloPair, timeStamp);
  }
 
  /* compareAllPoloniexBittrex
@@ -78,7 +63,12 @@ function compareAllPoloniexBittrex(poloJSON, bittrexJSON) {
   for(let bittrexMkt in bittrexJSON.exchangeData){
     let poloMktName = poloMktFromBittrexName(bittrexMkt);
     let poloMktElement = poloAllMarkets[poloMktName];
-    comparePoloniexBittrexMktElement(poloMktElement, bittrexJSON.exchangeData[bittrexMkt], poloMktName, reportingTimestamp)
+    if(!poloMktElement) {
+      console.log("Polo market for ", bittrexMkt, " doesn't exist.");
+    }
+    else {
+      comparePoloniexBittrexMktElement(poloMktElement, bittrexJSON.exchangeData[bittrexMkt], poloMktName, reportingTimestamp)
+    }
   }
 }
 
@@ -95,33 +85,91 @@ function comparePoloniexBittrexMktElement(poloJSON, bittrexJSON, poloPair, timeS
   outputArbResults(poloBuyAt, poloSellAt, bittrexSellAt, bittrexBuyAt, "Bittrex", poloPair, timeStamp);
 }
 
-function outputArbResults(poloBuyAt, poloSellAt, exchange2SellAt, exchange2BuyAt, exchange2Name, poloPair, timeStamp) {
+async function outputArbResults(poloBuyAt, poloSellAt, exchange2SellAt, exchange2BuyAt, exchange2Name, poloPair, timeStamp) {
 
+  let dbOutput = {
+    key: "",
+    exch1Name: "Poloniex",
+    exch2Name: exchange2Name,
+    timeStamp: timeStamp.toString().slice(0,25),
+    ccyPair: poloPair,
+    exch1BuyAt: poloBuyAt,
+    exch1SellAt: poloSellAt,
+    exch2BuyAt: exchange2BuyAt,
+    exch2SellAt: exchange2SellAt,
+    gainLoss: "LOSS",
+    urgentTrade: false,
+    arbPercent: 0,
+    exch1BuyOrSell: "",
+    tradeInstructions: "",
+  };
+ // Check for case of Buy at Exchange2 and Sell at Exchange1 (Polo)
   let arbOpportunity = poloSellAt-exchange2BuyAt;
   let arbPercent = 100*(poloSellAt-exchange2BuyAt)/( (poloSellAt+exchange2BuyAt) / 2);
+  dbOutput.arbPercent = arbPercent;
+  dbOutput.exch1BuyOrSell = "Sell";
   if(arbPercent > arbReportingThresholdPercent) {
     let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY at ${exchange2Name}: ${exchange2BuyAt.toFixed(8)} SELL Polo at, ${poloSellAt.toFixed(8)}, Gain, ${arbOpportunity.toFixed(7)}, ${arbPercent.toFixed(6)}%`;
     console.log(msg);
+    dbOutput.gainLoss = "GAIN";
+    dbOutput.tradeInstructions = `No trade. ${poloPair} BUY at ${exchange2Name} for ${exchange2BuyAt.toFixed(8)}.  SELL at Polo for ${poloSellAt.toFixed(8)} small gain ${arbPercent.toFixed(6)}%`;
     if (arbPercent > arbEmailThresholdPercent) {
-      let msgBody = `${poloPair} BUY at ${exchange2Name} for ${exchange2BuyAt.toFixed(8)}.  Sell at Poloniex for ${poloSellAt.toFixed(8)}, Gain: ${arbPercent.toFixed(6)}%`;
+      let msgBody = `${poloPair} BUY at ${exchange2Name} for ${exchange2BuyAt.toFixed(8)}. SELL at Polo for ${poloSellAt.toFixed(8)}, Gain: ${arbPercent.toFixed(6)}%`;
+      dbOutput.tradeInstructions = `TRADE NOW. ${poloPair} BUY at ${exchange2Name} for ${exchange2BuyAt.toFixed(8)}. SELL at Polo for ${poloSellAt.toFixed(8)}, Gain: ${arbPercent.toFixed(6)}%`;
+      dbOutput.urgentTrade = true;
       SendMessage(`${poloPair}: BUY at ${exchange2Name} and SELL at Poloniex`, msgBody);
     }
   }
-  else {
-    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: ${exchange2Name}, ${exchange2BuyAt.toFixed(8)} is greater than poloSellAt, ${poloSellAt.toFixed(8)}, DIFF, ${arbOpportunity.toFixed(6)}`);
+  else { 
+    dbOutput.gainLoss = "LOSS";
+    dbOutput.urgentTrade = false;
+    dbOutput.tradeInstructions = `No trade. ${poloPair}, BUY at ${exchange2Name} for ${exchange2BuyAt.toFixed(8)}.  SELL at Polo for ${poloSellAt.toFixed(8)} results in a loss of ${arbPercent.toFixed(6)}%`;
+    if (reportLoses) {
+      console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: ${exchange2Name}, ${exchange2BuyAt.toFixed(8)} is greater than poloSellAt, ${poloSellAt.toFixed(8)}, DIFF, ${arbOpportunity.toFixed(6)}`);
+    }
   }
+  let keyStr = "Buy"+exchange2Name+"SellPoloniex"+poloPair;
+  let key = {
+    "key": keyStr
+  };
+  dbOutput.key = keyStr;
+  if (dbWriteEnabled) {
+    await updateResultsInMongo(key, dbOutput, "crypto", "marketdata.arbmon");
+  }
+  // Check for case of Buy at Exchange1(Polo) and Sell at Exchange2
   arbOpportunity = exchange2SellAt-poloBuyAt;
   arbPercent = 100*(exchange2SellAt-poloBuyAt)/( (exchange2SellAt+poloBuyAt) / 2);
-  if(arbPercent > arbReportingThresholdPercent) {
-    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY at Polo: poloBuyAt, ${poloBuyAt.toFixed(8)} SELL ${exchange2Name} at, ${exchange2SellAt.toFixed(8)}, Gain, ${arbOpportunity.toFixed(7)}, ${arbPercent.toFixed(6)}%`;
+  dbOutput.arbPercent = arbPercent;
+  dbOutput.exch1BuyOrSell = "Sell";
+  if(dbOutput.maxProfit < arbPercent)
+    dbOutput.maxProfit = arbPercent;
+  if(arbPercent > arbReportingThresholdPercent) {    
+    let msg = `${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: GAIN, Desc: ${poloPair}. BUY at Polo for ${poloBuyAt.toFixed(8)} SELL ${exchange2Name} at, ${exchange2SellAt.toFixed(8)}, Gain, ${arbOpportunity.toFixed(7)}, ${arbPercent.toFixed(6)}%`;
     console.log(msg);
+    dbOutput.gainLoss = "GAIN";
+    dbOutput.tradeInstructions = `No trade. ${poloPair} BUY at Polo for ${poloBuyAt.toFixed(8)}. SELL at ${exchange2Name} for ${exchange2SellAt.toFixed(8)} small gain ${arbPercent.toFixed(6)}%`;
     if (arbPercent > arbEmailThresholdPercent) {
-      let msgBody = `${poloPair} BUY at Polo for ${poloBuyAt.toFixed(8)}.  Sell at ${exchange2Name} for ${exchange2SellAt.toFixed(8)}, Gain: ${arbPercent.toFixed(6)}%`;
+      let msgBody = `${poloPair} BUY at Polo for ${poloBuyAt.toFixed(8)}.  SELL at ${exchange2Name} for ${exchange2SellAt.toFixed(8)}, Gain: ${arbPercent.toFixed(6)}%`;
+      dbOutput.tradeInstructions = `TRADE NOW. ${poloPair} BUY at Polo for ${poloBuyAt.toFixed(8)}. SELL ${exchange2Name} for ${exchange2SellAt.toFixed(8)}, Gain: ${arbPercent.toFixed(6)}%`;
+      dbOutput.urgentTrade = true;
       SendMessage(`${poloPair}: BUY at Poloniex and SELL at ${exchange2Name}`, msgBody);
     }
   }
   else {
-    console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: poloBuyAt, ${poloBuyAt.toFixed(8)} is greater than ${exchange2Name}SellAt, ${exchange2SellAt.toFixed(8)}. DIFF, ${arbOpportunity.toFixed(7)}`);
+    dbOutput.gainLoss = "LOSS";
+    dbOutput.urgentTrade = false;
+    dbOutput.tradeInstructions = `No trade. ${poloPair}, BUY at Polo for ${poloBuyAt.toFixed(8)} SELL ${exchange2Name} for ${exchange2SellAt.toFixed(8)} results in a loss of ${arbPercent.toFixed(6)}%`;
+    if (reportLoses) {
+      console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: poloBuyAt, ${poloBuyAt.toFixed(8)} is greater than ${exchange2Name}SellAt, ${exchange2SellAt.toFixed(8)}. DIFF, ${arbOpportunity.toFixed(7)}`);
+    }
+  }
+  keyStr = "BuyPoloniexSell"+exchange2Name+poloPair;
+  key = {
+    "key": keyStr
+  };
+  dbOutput.key = keyStr;
+  if (dbWriteEnabled) {
+    await updateResultsInMongo(key, dbOutput, "crypto", "marketdata.arbmon");
   }
 }
 
@@ -129,6 +177,10 @@ function outputArbResults(poloBuyAt, poloSellAt, exchange2SellAt, exchange2BuyAt
  * desc: Converts a Bittrex crypto currency pair into the Poloniex pair.
  */
 function poloMktFromBittrexName(bittrexMktName) {
+  if(bittrexMktName==="BTC-XLM")
+    return("BTC_STR");
+  if(bittrexMktName==="USDT-XLM")
+    return("USDT_STR");    
   return(bittrexMktName.replace("-", "_"));
 }
 
@@ -151,6 +203,10 @@ function compareAllPoloniexHitbtc(poloJSON, hitbtcJSON) {
   }
 }
 
+/* comparePoloniexHitbtcMktElement
+ * desc: Pulls out the buy and sell prices for a single currency pair for Poloniex and Hitbtc.
+ *       Forwards this to the output method to record the arbitrage results.
+ */
 function comparePoloniexHitbtcMktElement(poloMktElement, hitbtcMktElement, poloMktName, reportingTimestamp) {
 
   let poloBuyAt = +poloMktElement.lowestAsk;
@@ -160,15 +216,31 @@ function comparePoloniexHitbtcMktElement(poloMktElement, hitbtcMktElement, poloM
   outputArbResults(poloBuyAt, poloSellAt, hitbtcSellAt, hitbtcBuyAt, "Hitbtc", poloMktName, reportingTimestamp);
 }
 
+/* poloMktFromHitbtcName
+ * desc: Maps from Hitbtc tickers to Poloniex tickers.
+ */
 function poloMktFromHitbtcName(hitbtcMktName) {
 
   const poloMktNames = {
     BCNBTC:   "BTC_BCN",
+    BNTUSDT:  "USDT_BNT",
     DASHBTC:  "BTC_DASH",
+    DASHUSDT: "USDT_DASH",
     DOGEBTC:  "BTC_DOGE",
+    DOGEUSDT: "USDT_DOGE",
+    DGBBTC:   "BTC_DGB",
+    EOSBTC:   "BTC_EOS",
+    EOSUSDT:  "USDT_EOS",
+    ETCUSDT:  "USDT_ETC",
+    ETHUSDT:  "USDT_ETH",
     LSKBTC:   "BTC_LSK",
     MAIDBTC:  "BTC_MAID",
+    MANABTC:  "BTC_MANA",
+    OMGBTC:   "BTC_OMG",
+    PPCBTC:   "BTC_PPC",
+    QTUMBTC:  "BTC_QTUM",
     REPBTC:   "BTC_REP",
+    REPUSDT:  "USDT_REP",
     XEMBTC:   "BTC_XEM",
     ETHBTC:   "BTC_ETH",
     ZECETH:   "ETH_ZEC"
@@ -176,4 +248,52 @@ function poloMktFromHitbtcName(hitbtcMktName) {
   return(poloMktNames[hitbtcMktName]);
 }
 
-export {comparePoloniexCoinbase, compareAllPoloniexBittrex, compareAllPoloniexHitbtc};
+/* compareAllPoloniexYobit
+ * desc: Compares market data across many currency pairs between Poloniex and Yobit.
+ *       Note that Yobit oftens has large prcie discrepencies but the wallets for thos coins
+ *       are deactivated.  So you can't generate a profit.
+ */
+function compareAllPoloniexYobit(poloData, yobitData) {
+
+  let reportingTimestamp = new Date();
+  let poloTimestamp = poloData.timeStamp;
+  let poloAllMarkets = JSON.parse(poloData.exchangeData);
+  let yobitTimestamp = yobitData.timeStamp;
+  let yobitAllMarkets = JSON.parse(yobitData.exchangeData);
+  console.log(poloTimestamp);
+  console.log(yobitTimestamp);
+  for(let yobitMkt in yobitAllMarkets){
+    console.log("yobitMkt:", yobitMkt, " data:", yobitAllMarkets[yobitMkt]);
+    let poloMktName = poloMktFromYobitName(yobitMkt);
+    console.log("PoloMarket:", poloMktName, " data:", poloAllMarkets[poloMktName]);
+    comparePoloniexYobitMktElement(poloAllMarkets[poloMktName], yobitAllMarkets[yobitMkt], poloMktName, reportingTimestamp);
+  }
+}
+
+/* comparePoloniexYobitMktElement
+ * desc: Pulls out the buy and sell prices for a single currency pair for Poloniex and Yobit.
+ *       Forwards this to the output method to record the arbitrage results.
+ */
+function comparePoloniexYobitMktElement(poloMktElement, yobitMktElement, poloMktName, reportingTimestamp) {
+
+  let poloBuyAt = +poloMktElement.lowestAsk;
+  let poloSellAt = +poloMktElement.highestBid;
+  let yobitSellAt = +yobitMktElement.sell;
+  let yobitBuyAt = +yobitMktElement.buy;
+  outputArbResults(poloBuyAt, poloSellAt, yobitSellAt, yobitBuyAt, "Yobit", poloMktName, reportingTimestamp);
+}
+
+/* poloMktFromYobitName
+ * desc: Maps from Yobit tickers to Poloniex tickers.
+ */
+function poloMktFromYobitName(yobitMktName) {
+
+  const poloMktNames = {
+    ltc_btc:  "BTC_LTC",
+    nmc_btc:  "BTC_NMC",
+    nmr_btc:  "BTC_NMR"
+  };
+  return(poloMktNames[yobitMktName]);
+}
+
+export {comparePoloniexCoinbase, compareAllPoloniexBittrex, compareAllPoloniexHitbtc, compareAllPoloniexYobit};

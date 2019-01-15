@@ -61,6 +61,36 @@ async function writeResultsToMongo(dataToWrite, targetDB, targetCollection) {
   }
 }
 
+/* updateResultsInMongo()
+ * desc: Updates an existing record in the database.  If record doesn't exist it is created.
+ * param: dataToWrite - the json block to write to MongoDB.
+ *
+ */
+async function updateResultsInMongo(key, dataToWrite, targetDB, targetCollection) {
+
+  var url = process.env.URLCrypto;
+  if (url==undefined || url==="") {
+    console.log("MongoDB url not set in the environment.");
+    console.log("Try running source SetMongoEnv.sh prior to running this.");
+  }
+  else {
+    var client;
+    var db;
+    try {
+      client = await MongoClient.connect(url, { useNewUrlParser: true });
+      db = client.db(targetDB);
+      await db.collection(targetCollection).updateOne(key, {$set: dataToWrite}, {upsert:true, w: 1});
+    }
+    catch(err) {
+      console.log("Error writing to DB:", err);
+    }
+    finally {
+      if(client!==undefined)
+        client.close();
+    }
+  }
+}
+
 /* writeResultsToMongoSync()
  * desc: Writes results into MongoDB on the cloud.
  * param: dataToWrite - the json block to write to MongoDB.
@@ -100,9 +130,9 @@ async function writeResultsToMongoSync(dataToWrite, targetDB, targetCollection) 
   });
 }
 
-/* writeResultsToMongo()
- * desc: Writes results from the google BigQuery into MongoDB on the cloud
- * param: dataToWrite - the json block to write to MongoDB.
+/* removeCollectionFromMongo()
+ * desc: Removes an entire collection from the database.
+ * param: targetCollection - the collection to remove.
  *
  */
 async function removeCollectionFromMongo(targetDB, targetCollection) {
@@ -132,4 +162,4 @@ async function removeCollectionFromMongo(targetDB, targetCollection) {
 }
 
 
-export {writeResultsToMongo, getMostRecentETHData, removeCollectionFromMongo, writeResultsToMongoSync};
+export {updateResultsInMongo, writeResultsToMongo, getMostRecentETHData, removeCollectionFromMongo, writeResultsToMongoSync};

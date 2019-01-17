@@ -6,15 +6,24 @@ function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try
 
 function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
 
+var express = require('express');
+
+var path = require('path');
+
 var appRouter = function appRouter(app) {
   app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
   });
-  app.get("/", function (req, res) {
-    res.status(200).send("Welcome to our restful API");
-  }); // Route to query mongoDB for arbitrage data.
+  var dirname = "/usr/local/dist/arbmon/";
+  app.use(express.static(path.join(dirname, 'build-ui')));
+  app.get('/', function (req, res) {
+    res.sendFile(path.join(dirname, 'build-ui', 'index.html'));
+  }); // app.get("/", function(req, res) {
+  //   res.status(200).send("Welcome to our restful API");
+  // });
+  // Route to query mongoDB for arbitrage data.
 
   app.get("/arbdata",
   /*#__PURE__*/

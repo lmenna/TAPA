@@ -264,7 +264,7 @@ async function runPoloYobitCompare() {
   // Bittrex section - All coins from one request.
   // Bittrex market summary - All coins from one request.
   let yobitMarkets = [
-    "ltc_btc", "nmc_btc", "nmr_btc"
+    "ltc_btc", "eth_btc"
   ];
   let tickerList = "";
   for(let i=0; i<yobitMarkets.length; i++) {
@@ -277,17 +277,6 @@ async function runPoloYobitCompare() {
   let yobitData = await getExchangeData(yobitURL);  
   console.log("yobitData:", yobitData);
   compareAllPoloniexYobit(poloniexData, yobitData);
-  // let hitbtcTrimmed = {};
-  // hitbtcMarkets.forEach(market => {
-  //   hitbtcJSON.forEach(exchangeData => {
-  //     if(exchangeData.symbol===market)
-  //       hitbtcTrimmed[market] = exchangeData;
-  //   });     
-  // });
-  // let hitbtcCompare = {};
-  // hitbtcCompare.timeStamp = hitbtcData.timeStamp;
-  // hitbtcCompare.exchangeData = hitbtcTrimmed;
-  // compareAllPoloniexHitbtc(poloniexData, hitbtcCompare);
 }
 
 

@@ -1,4 +1,6 @@
 import { getArbitrageData } from "../utils/dbUtils"
+const express = require('express');
+const path = require('path');
 
 var appRouter = function (app) {
   
@@ -8,9 +10,15 @@ var appRouter = function (app) {
     next();
   });
   
-  app.get("/", function(req, res) {
-    res.status(200).send("Welcome to our restful API");
+  var dirname = "/usr/local/dist/arbmon/";
+  app.use(express.static(path.join(dirname, 'build-ui')));
+  app.get('/', function(req, res) {
+    res.sendFile(path.join(dirname, 'build-ui', 'index.html'));
   });
+  
+  // app.get("/", function(req, res) {
+  //   res.status(200).send("Welcome to our restful API");
+  // });
 
   // Route to query mongoDB for arbitrage data.
   app.get("/arbdata", async function (req, res) {

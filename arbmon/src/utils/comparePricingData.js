@@ -110,7 +110,7 @@ async function outputArbResults(poloBuyAt, poloSellAt, exchange2SellAt, exchange
   dbOutput.exch1BuyOrSell = "Sell";
   if(arbPercent > arbReportingThresholdPercent) {
     dbOutput.gainLoss = "GAIN";
-    dbOutput.tradeInstructions = `${poloPair} BUY at ${exchange2Name} for ${exchange2BuyAt.toFixed(8)}. SELL at Polo for ${poloSellAt.toFixed(8)} Gain ${arbPercent.toFixed(6)}%`;
+    dbOutput.tradeInstructions = `${poloPair} BUY at ${exchange2Name} for ${exchange2BuyAt.toFixed(9)}. SELL at Polo for ${poloSellAt.toFixed(9)} Gain ${arbPercent.toFixed(6)}%`;
     console.log(dbOutput.gainLoss, ": ", dbOutput.tradeInstructions);
     if (arbPercent > arbEmailThresholdPercent) {
       dbOutput.urgentTrade = true;
@@ -120,7 +120,7 @@ async function outputArbResults(poloBuyAt, poloSellAt, exchange2SellAt, exchange
   else { 
     dbOutput.gainLoss = "LOSS";
     dbOutput.urgentTrade = false;
-    dbOutput.tradeInstructions = `${poloPair} BUY at ${exchange2Name} for ${exchange2BuyAt.toFixed(8)}. SELL at Polo for ${poloSellAt.toFixed(8)} Loss ${arbPercent.toFixed(6)}%`;
+    dbOutput.tradeInstructions = `${poloPair} BUY at ${exchange2Name} for ${exchange2BuyAt.toFixed(9)}. SELL at Polo for ${poloSellAt.toFixed(9)} Loss ${arbPercent.toFixed(6)}%`;
     if (reportLoses) {
       console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: ${exchange2Name}, ${exchange2BuyAt.toFixed(8)} is greater than poloSellAt, ${poloSellAt.toFixed(8)}, DIFF, ${arbOpportunity.toFixed(6)}`);
     }
@@ -137,12 +137,12 @@ async function outputArbResults(poloBuyAt, poloSellAt, exchange2SellAt, exchange
   arbOpportunity = exchange2SellAt-poloBuyAt;
   arbPercent = 100*(exchange2SellAt-poloBuyAt)/( (exchange2SellAt+poloBuyAt) / 2);
   dbOutput.arbPercent = arbPercent;
-  dbOutput.exch1BuyOrSell = "Sell";
+  dbOutput.exch1BuyOrSell = "Buy";
   if(dbOutput.maxProfit < arbPercent)
     dbOutput.maxProfit = arbPercent;
   if(arbPercent > arbReportingThresholdPercent) {    
     dbOutput.gainLoss = "GAIN";
-    dbOutput.tradeInstructions = `${poloPair} BUY at Polo for ${poloBuyAt.toFixed(8)}. SELL ${exchange2Name} for ${exchange2SellAt.toFixed(8)} Gain ${arbPercent.toFixed(6)}%`;
+    dbOutput.tradeInstructions = `${poloPair} BUY at Polo for ${poloBuyAt.toFixed(9)}. SELL ${exchange2Name} for ${exchange2SellAt.toFixed(9)} Gain ${arbPercent.toFixed(6)}%`;
     console.log(dbOutput.gainLoss, ": ", dbOutput.tradeInstructions);
     if (arbPercent > arbEmailThresholdPercent) {
       dbOutput.urgentTrade = true;
@@ -152,9 +152,9 @@ async function outputArbResults(poloBuyAt, poloSellAt, exchange2SellAt, exchange
   else {
     dbOutput.gainLoss = "LOSS";
     dbOutput.urgentTrade = false;
-    dbOutput.tradeInstructions = `${poloPair} BUY at Polo for ${poloBuyAt.toFixed(8)} SELL ${exchange2Name} for ${exchange2SellAt.toFixed(8)} Loss ${arbPercent.toFixed(6)}%`;
+    dbOutput.tradeInstructions = `${poloPair} BUY at Polo for ${poloBuyAt.toFixed(9)} SELL ${exchange2Name} for ${exchange2SellAt.toFixed(9)} Loss ${arbPercent.toFixed(6)}%`;
     if (reportLoses) {
-      console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: poloBuyAt, ${poloBuyAt.toFixed(8)} is greater than ${exchange2Name}SellAt, ${exchange2SellAt.toFixed(8)}. DIFF, ${arbOpportunity.toFixed(7)}`);
+      console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: poloBuyAt, ${poloBuyAt.toFixed(9)} is greater than ${exchange2Name}SellAt, ${exchange2SellAt.toFixed(8)}. DIFF, ${arbOpportunity.toFixed(7)}`);
     }
   }
   keyStr = "BuyPoloniexSell"+exchange2Name+poloPair;

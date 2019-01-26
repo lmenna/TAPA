@@ -4,7 +4,7 @@
  */
 
 import {SendMessage} from "./sendEMail";
-import {writeResultsToMongo, updateResultsInMongo} from "./dbUtils";
+import {updateResultsInMongo, writeResultsToMongoSync} from "./dbUtils";
 
 // Set this to be a clear trading opportunity
 const arbEmailThresholdPercent = 1.25;
@@ -18,7 +18,7 @@ let reportLoses = false;
 /* formatTimestamp
  * desc: Simple utility to truncate the output of long time stamps to include only the date and time parts.
  */
-function formatTimestamp(timeStamp) {
+function formatTimestamp(timeStamp: Date) {
   return(timeStamp.toString().slice(0,25));
 }
 
@@ -26,7 +26,7 @@ function formatTimestamp(timeStamp) {
  * desc: Main function called to compare the Poloniex and Coinbase crypto markets.
  *       This function is exported and called be app.js
  */
-function comparePoloniexCoinbase(poloData, cbData, coin) {
+function comparePoloniexCoinbase(poloData: any, cbData: any, coin: string) {
 
   var poloJSON = JSON.parse(poloData.exchangeData);
   var cbJSON = JSON.parse(cbData.exchangeData);
@@ -39,7 +39,7 @@ function comparePoloniexCoinbase(poloData, cbData, coin) {
  * desc: Compares a currency pair between Poloniex and Coinbase.  Notifies when significant arbitrage opportunities
  *       occur.
  */
-function compareCurrencyPair(timeStamp, poloJSON, cbJSON, ccy1, ccy2) {
+function compareCurrencyPair(timeStamp: Date, poloJSON: any, cbJSON: any, ccy1: string, ccy2: string) {
   let poloPair = ccy1+"_"+ccy2;
   let poloBuyAt = +poloJSON[poloPair].lowestAsk;
   let poloSellAt = +poloJSON[poloPair].highestBid;
@@ -52,7 +52,7 @@ function compareCurrencyPair(timeStamp, poloJSON, cbJSON, ccy1, ccy2) {
   * desc: Takes the poloniex and bittrex data in JSON format and compares all overlaping markets for arbitrage.
   *       Exported function called by the main app.js
   */
-function compareAllPoloniexBittrex(poloJSON, bittrexJSON) {
+function compareAllPoloniexBittrex(poloJSON: any, bittrexJSON: any) {
 
   let reportingTimestamp = new Date();
   let poloTimestamp = poloJSON.timeStamp;
@@ -76,7 +76,7 @@ function compareAllPoloniexBittrex(poloJSON, bittrexJSON) {
  * desc: Compares a particular market between the Poloniex and Bittrex exchanges.  Sedn notifications when
  *       significant arbitrage opportunities exist.
  */
-function comparePoloniexBittrexMktElement(poloJSON, bittrexJSON, poloPair, timeStamp) {
+function comparePoloniexBittrexMktElement(poloJSON: any, bittrexJSON: any, poloPair: string, timeStamp: Date) {
 
   let poloBuyAt = +poloJSON.lowestAsk;
   let poloSellAt = +poloJSON.highestBid;
@@ -85,7 +85,9 @@ function comparePoloniexBittrexMktElement(poloJSON, bittrexJSON, poloPair, timeS
   outputArbResults(poloBuyAt, poloSellAt, bittrexSellAt, bittrexBuyAt, "Bittrex", poloPair, timeStamp);
 }
 
-async function outputArbResults(poloBuyAt: number, poloSellAt: number, exchange2SellAt: number, exchange2BuyAt: number, exchange2Name: string, poloPair, timeStamp) {
+async function outputArbResults(poloBuyAt: number, poloSellAt: number, 
+  exchange2SellAt: number, exchange2BuyAt: number, exchange2Name: string, 
+  poloPair: string, timeStamp: Date) {
 
   let dbOutput = {
     key: "",
@@ -102,6 +104,7 @@ async function outputArbResults(poloBuyAt: number, poloSellAt: number, exchange2
     arbPercent: 0,
     exch1BuyOrSell: "",
     tradeInstructions: "",
+    time: Math.round(new Date().getTime()/1000)
   };
  // Check for case of Buy at Exchange2 and Sell at Exchange1 (Polo)
   let arbOpportunity = poloSellAt-exchange2BuyAt;
@@ -132,14 +135,16 @@ async function outputArbResults(poloBuyAt: number, poloSellAt: number, exchange2
   dbOutput.key = keyStr;
   if (dbWriteEnabled) {
     await updateResultsInMongo(key, dbOutput, "crypto", "marketdata.arbmon");
+    if (dbOutput.urgentTrade) {
+      dbOutput.key += new Date().getTime();
+     await writeResultsToMongoSync(dbOutput, "crypto", "marketdata.arbmonhist");
+    }
   }
   // Check for case of Buy at Exchange1(Polo) and Sell at Exchange2
   arbOpportunity = exchange2SellAt-poloBuyAt;
   arbPercent = 100*(exchange2SellAt-poloBuyAt)/( (exchange2SellAt+poloBuyAt) / 2);
   dbOutput.arbPercent = arbPercent;
   dbOutput.exch1BuyOrSell = "Buy";
-  if(dbOutput.maxProfit < arbPercent)
-    dbOutput.maxProfit = arbPercent;
   if(arbPercent > arbReportingThresholdPercent) {    
     dbOutput.gainLoss = "GAIN";
     dbOutput.tradeInstructions = `${poloPair} BUY at Polo for ${poloBuyAt.toFixed(9)}. SELL ${exchange2Name} for ${exchange2SellAt.toFixed(9)} Gain ${arbPercent.toFixed(6)}%`;
@@ -164,13 +169,17 @@ async function outputArbResults(poloBuyAt: number, poloSellAt: number, exchange2
   dbOutput.key = keyStr;
   if (dbWriteEnabled) {
     await updateResultsInMongo(key, dbOutput, "crypto", "marketdata.arbmon");
+    if (dbOutput.urgentTrade) {
+      dbOutput.key += new Date().getTime();
+      await writeResultsToMongoSync(dbOutput, "crypto", "marketdata.arbmonhist");
+    }
   }
 }
 
 /* poloMktFromBittrexName
  * desc: Converts a Bittrex crypto currency pair into the Poloniex pair.
  */
-function poloMktFromBittrexName(bittrexMktName) {
+function poloMktFromBittrexName(bittrexMktName: string): string {
   if(bittrexMktName==="BTC-XLM")
     return("BTC_STR");
   if(bittrexMktName==="USDT-XLM")
@@ -182,7 +191,7 @@ function poloMktFromBittrexName(bittrexMktName) {
 *  desc: Takes the poloniex and hitbtc data in JSON format and compares all overlaping markets for arbitrage.
 *       Exported function called by the main app.js
 */
-function compareAllPoloniexHitbtc(poloJSON, hitbtcJSON) {
+function compareAllPoloniexHitbtc(poloJSON: any, hitbtcJSON: any) {
   
   let reportingTimestamp = new Date();
   let poloTimestamp = poloJSON.timeStamp;
@@ -201,21 +210,25 @@ function compareAllPoloniexHitbtc(poloJSON, hitbtcJSON) {
  * desc: Pulls out the buy and sell prices for a single currency pair for Poloniex and Hitbtc.
  *       Forwards this to the output method to record the arbitrage results.
  */
-function comparePoloniexHitbtcMktElement(poloMktElement, hitbtcMktElement, poloMktName, reportingTimestamp) {
+function comparePoloniexHitbtcMktElement(poloMktElement: any, hitbtcMktElement: any, poloMktName: string, reportingTimestamp: Date) {
 
   let poloBuyAt = +poloMktElement.lowestAsk;
   let poloSellAt = +poloMktElement.highestBid;
   let hitbtcSellAt = +hitbtcMktElement.bid;
   let hitbtcBuyAt = +hitbtcMktElement.ask;
+  if (!hitbtcSellAt || !hitbtcBuyAt) {
+    console.log("Got bad rates from the hitbtc for:", poloMktName);
+    return;
+  }
   outputArbResults(poloBuyAt, poloSellAt, hitbtcSellAt, hitbtcBuyAt, "Hitbtc", poloMktName, reportingTimestamp);
 }
 
 /* poloMktFromHitbtcName
  * desc: Maps from Hitbtc tickers to Poloniex tickers.
  */
-function poloMktFromHitbtcName(hitbtcMktName) {
+function poloMktFromHitbtcName(hitbtcMktName: string): string {
 
-  const poloMktNames = {
+  const poloMktNames: any = {
     BCNBTC:   "BTC_BCN",
     BNTUSDT:  "USDT_BNT",
     DASHBTC:  "BTC_DASH",
@@ -247,10 +260,10 @@ function poloMktFromHitbtcName(hitbtcMktName) {
  *       Note that Yobit oftens has large prcie discrepencies but the wallets for thos coins
  *       are deactivated.  So you can't generate a profit.
  */
-function compareAllPoloniexYobit(poloData, yobitData) {
+function compareAllPoloniexYobit(poloData: any, yobitData: any) {
 
-  let reportingTimestamp = new Date();
-  let poloTimestamp = poloData.timeStamp;
+  let reportingTimestamp: Date = new Date();
+  let poloTimestamp: Date = poloData.timeStamp;
   let poloAllMarkets = JSON.parse(poloData.exchangeData);
   let yobitTimestamp = yobitData.timeStamp;
   let yobitAllMarkets = JSON.parse(yobitData.exchangeData);
@@ -268,7 +281,7 @@ function compareAllPoloniexYobit(poloData, yobitData) {
  * desc: Pulls out the buy and sell prices for a single currency pair for Poloniex and Yobit.
  *       Forwards this to the output method to record the arbitrage results.
  */
-function comparePoloniexYobitMktElement(poloMktElement, yobitMktElement, poloMktName, reportingTimestamp) {
+function comparePoloniexYobitMktElement(poloMktElement: any, yobitMktElement: any, poloMktName: any, reportingTimestamp: Date) {
 
   let poloBuyAt = +poloMktElement.lowestAsk;
   let poloSellAt = +poloMktElement.highestBid;
@@ -280,9 +293,9 @@ function comparePoloniexYobitMktElement(poloMktElement, yobitMktElement, poloMkt
 /* poloMktFromYobitName
  * desc: Maps from Yobit tickers to Poloniex tickers.
  */
-function poloMktFromYobitName(yobitMktName) {
+function poloMktFromYobitName(yobitMktName: string): string {
 
-  const poloMktNames = {
+  const poloMktNames: any = {
     ltc_btc:  "BTC_LTC",
     nmc_btc:  "BTC_NMC",
     nmr_btc:  "BTC_NMR",
@@ -308,10 +321,10 @@ async function internalCompareForYobit(mktData : any, yobitMarkets : Array<strin
       exch2Name: "Yobit",
       timeStamp: timeStamp.toString().slice(0,25),
       ccyPair: curMkt1,
-      exch1BuyAt: mktData[basePair].buy,
+      exch1BuyAt: mktData[curMkt1].sell,
       exch1SellAt: 0,
       exch2BuyAt: 0,
-      exch2SellAt: mktData[curMkt1].sell,
+      exch2SellAt: mktData[curMkt2].buy,
       gainLoss: "Loss",
       urgentTrade: false,
       arbPercent: arbFraction,

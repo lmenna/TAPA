@@ -1,0 +1,20 @@
+"use strict";
+
+var _dbUtils = require("./utils/dbUtils");
+
+/* oneTimeUpdate.js
+ * Will add a timeStamp to each element in the collection specified.
+ *
+ * To run this use,
+ * 
+ * source SetMongoEnv.sh 
+ * npm run build
+ * node lib/oneTimeUpdate.js
+ * 
+ */
+require("@babel/polyfill");
+
+var db = "crypto";
+var collection = "marketdata.arbmonhist";
+(0, _dbUtils.oneTimeUpdate)(db, collection);
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uL3NyYy9vbmVUaW1lVXBkYXRlLmpzIl0sIm5hbWVzIjpbInJlcXVpcmUiLCJkYiIsImNvbGxlY3Rpb24iXSwibWFwcGluZ3MiOiI7O0FBWUE7O0FBWkE7Ozs7Ozs7Ozs7QUFVQUEsT0FBTyxDQUFDLGlCQUFELENBQVA7O0FBSUEsSUFBTUMsRUFBRSxHQUFHLFFBQVg7QUFDQSxJQUFNQyxVQUFVLEdBQUcsdUJBQW5CO0FBRUEsNEJBQWNELEVBQWQsRUFBa0JDLFVBQWxCIiwic291cmNlc0NvbnRlbnQiOlsiLyogb25lVGltZVVwZGF0ZS5qc1xuICogV2lsbCBhZGQgYSB0aW1lU3RhbXAgdG8gZWFjaCBlbGVtZW50IGluIHRoZSBjb2xsZWN0aW9uIHNwZWNpZmllZC5cbiAqXG4gKiBUbyBydW4gdGhpcyB1c2UsXG4gKiBcbiAqIHNvdXJjZSBTZXRNb25nb0Vudi5zaCBcbiAqIG5wbSBydW4gYnVpbGRcbiAqIG5vZGUgbGliL29uZVRpbWVVcGRhdGUuanNcbiAqIFxuICovXG5yZXF1aXJlKFwiQGJhYmVsL3BvbHlmaWxsXCIpO1xuXG5pbXBvcnQge29uZVRpbWVVcGRhdGV9IGZyb20gXCIuL3V0aWxzL2RiVXRpbHNcIjtcblxuY29uc3QgZGIgPSBcImNyeXB0b1wiO1xuY29uc3QgY29sbGVjdGlvbiA9IFwibWFya2V0ZGF0YS5hcmJtb25oaXN0XCI7XG5cbm9uZVRpbWVVcGRhdGUoZGIsIGNvbGxlY3Rpb24pO1xuIl19

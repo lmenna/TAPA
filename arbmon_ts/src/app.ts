@@ -1,6 +1,6 @@
 require("@babel/polyfill");
 
-import {getExchangeData} from "./utils/getCryptoData.js";
+import {getExchangeData} from "./utils/getCryptoData";
 import {comparePoloniexCoinbase, compareAllPoloniexBittrex, compareAllPoloniexHitbtc,
   compareAllPoloniexYobit, internalCompareForYobit} from "./utils/comparePricingData";
 
@@ -238,9 +238,9 @@ async function runPoloHitbtcCompare() {
   let hitbtcMarkets: Array<string> = [
     "BCNBTC", "BNTUSDT", "DASHBTC", "DASHUSDT", "DGBBTC", "DOGEBTC", 
     "DOGEUSDT", "EOSBTC", "EOSUSDT", "ETCUSDT", "ETHBTC", 
-    "ETHUSDT", "LSKBTC","MAIDBTC",
-    "MANABTC", "OMGBTC", "PPCBTC", "QTUMPPC", "REPBTC", 
-    "REPUSDT", "XEMBTC", "ZECETH" 
+    "ETHUSDT", "LSKBTC", "MAIDBTC", "MANABTC", 
+    "OMGBTC", "PPCBTC", "QTUMPPC", "REPBTC", "REPUSDT", 
+    "XEMBTC", "ZECETH" 
   ];
 
   let hitbtcTrimmed: any = {};
@@ -296,9 +296,6 @@ function runYobitInternalCompare() {
       "btc", "eth"
     ];
   runYobitBaseMktCompare(baseMarkets, yobitMarkets);
-  // let yobitMarkets: Array<string> = [ "ltc", "waves" ];
-  // let baseMarkets: Array<string> = [ "doge", "eth" ];
-  // runYobitBaseMktCompare(baseMarkets, yobitMarkets);
 }
 
 async function runYobitBaseMktCompare(baseMarkets: Array<string>, yobitMarkets: Array<string>) {
@@ -340,7 +337,7 @@ async function runYobitBaseMktCompare(baseMarkets: Array<string>, yobitMarkets: 
 
 
 // Set the default copare to run.
-let compareToRun: Promise<void> =  runPoloBittrexCompare;
+let compareToRun: Promise<void> = runPoloBittrexCompare;
 if (process.argv.length>=3) {
   if (process.argv[2]==="polointernal") {
     console.log(`Running polointernal compare.`);

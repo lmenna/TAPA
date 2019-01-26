@@ -1,0 +1,8 @@
+"use strict";
+
+var _dbAnalytics = require("./utils/dbAnalytics");
+
+require("@babel/polyfill");
+
+(0, _dbAnalytics.getCcyPairsAlertHistory)();
+//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIi4uL3NyYy9ydW5SZXBvcnRzLnRzIl0sIm5hbWVzIjpbInJlcXVpcmUiXSwibWFwcGluZ3MiOiI7O0FBRUE7O0FBRkFBLE9BQU8sQ0FBQyxpQkFBRCxDQUFQOztBQUtBIiwic291cmNlc0NvbnRlbnQiOlsicmVxdWlyZShcIkBiYWJlbC9wb2x5ZmlsbFwiKTtcblxuaW1wb3J0IHtnZXRDY3lQYWlyc0FsZXJ0SGlzdG9yeX0gZnJvbSBcIi4vdXRpbHMvZGJBbmFseXRpY3NcIjtcblxuXG5nZXRDY3lQYWlyc0FsZXJ0SGlzdG9yeSgpO1xuXG4iXX0=

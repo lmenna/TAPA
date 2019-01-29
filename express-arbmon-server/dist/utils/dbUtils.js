@@ -124,7 +124,7 @@ function _getArbitrageData() {
             db = client.db("crypto");
             console.log("getArbitrageData - marketdata.arbmon");
             _context2.next = 14;
-            return db.collection("marketdata.arbmon").find({}).toArray();
+            return db.collection("marketdata.arbmon-p").find({}).toArray();
 
           case 14:
             results = _context2.sent;

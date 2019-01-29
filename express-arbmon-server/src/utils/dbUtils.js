@@ -46,7 +46,7 @@ async function getArbitrageData() {
       client = await MongoClient.connect(url, { useNewUrlParser: true });
       db = client.db("crypto");
       console.log("getArbitrageData - marketdata.arbmon");
-      let results = await db.collection("marketdata.arbmon").find({}).toArray();
+      let results = await db.collection("marketdata.arbmon-p").find({}).toArray();
       return(results); 
     } finally {
       client.close();

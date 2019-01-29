@@ -14,6 +14,10 @@ const arbReportingThresholdPercent = 0.0;
 let dbWriteEnabled = true;
 // Control reported output
 let reportLoses = false;
+// mongoDB - Database and collection
+const mongoDBName = "crypto";
+const mongoDBCollection = "marketdata.arbmon-p";
+const mongoDBCollectionHist = "marketdata.arbmonhist-p";
 
 /* formatTimestamp
  * desc: Simple utility to truncate the output of long time stamps to include only the date and time parts.
@@ -134,10 +138,10 @@ async function outputArbResults(poloBuyAt: number, poloSellAt: number,
   };
   dbOutput.key = keyStr;
   if (dbWriteEnabled) {
-    await updateResultsInMongo(key, dbOutput, "crypto", "marketdata.arbmon");
+    await updateResultsInMongo(key, dbOutput, mongoDBName, mongoDBCollection);
     if (dbOutput.urgentTrade) {
       dbOutput.key += new Date().getTime();
-     await writeResultsToMongoSync(dbOutput, "crypto", "marketdata.arbmonhist");
+     await writeResultsToMongoSync(dbOutput, mongoDBName, mongoDBCollectionHist);
     }
   }
   // Check for case of Buy at Exchange1(Polo) and Sell at Exchange2
@@ -168,10 +172,10 @@ async function outputArbResults(poloBuyAt: number, poloSellAt: number,
   };
   dbOutput.key = keyStr;
   if (dbWriteEnabled) {
-    await updateResultsInMongo(key, dbOutput, "crypto", "marketdata.arbmon");
+    await updateResultsInMongo(key, dbOutput, mongoDBName, mongoDBCollection);
     if (dbOutput.urgentTrade) {
       dbOutput.key += new Date().getTime();
-      await writeResultsToMongoSync(dbOutput, "crypto", "marketdata.arbmonhist");
+      await writeResultsToMongoSync(dbOutput, mongoDBName, mongoDBCollectionHist);
     }
   }
 }
@@ -346,7 +350,7 @@ async function internalCompareForYobit(mktData : any, yobitMarkets : Array<strin
       "key": keyStr
     };
     if (dbWriteEnabled) {
-      await updateResultsInMongo(key, dbOutput, "crypto", "marketdata.arbmon");
+      await updateResultsInMongo(key, dbOutput, mongoDBName, mongoDBCollection);
     }    
   }
 }

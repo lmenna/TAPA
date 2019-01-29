@@ -1,3 +1,9 @@
+/* app.ts
+ * desc: Main entry point for the crypto exchange price arbitrage monitor.  The event loop that controls
+ *       reading exchange data runs from here.  As data is loaded from exchanges it gets passed into
+ *       comparPricingResults.js to see if there are any market opportunities.
+ */
+
 require("@babel/polyfill");
 
 import {getExchangeData} from "./utils/getCryptoData";
@@ -190,20 +196,26 @@ async function runPoloBittrexCompare() {
   // Poloniex section - All coins from one request
   let poloniexData = await getExchangeData(poloniexURL);
   // Bittrex section - All coins from one request.
-  // Bittrex market summary - All coins from one request.
   let bittrexALL = await getExchangeData(bittrexURLAll);
   let bittrexJSON: any = JSON.parse(bittrexALL.exchangeData);
+  // let bittrexBTCCoins: any = {
+  //   BTC: ["ardr", "bat", "bnt", "burst", "cvc", "dash", "dcr", "dgb", "doge", "etc", 
+  //   "eth", "fct", "game", "gnt", "lbc", "loom", "lsk", "ltc", "mana", "nav", 
+  //   "nmr", "nxt", "omg", "poly", "ppc", "qtum", "rep", "sbd", "sc", "snt", 
+  //   "steem", "storj", "strat", "sys", "via", "vtc", "xcp", "xem", "xlm", "xmr", 
+  //   "xrp", "zec", "zrx"],
+  //   ETH: ["BAT", "BNT", "CVC", "ETC", "GNT", "MANA", "OMG", "QTUM", 
+  //     "REP", "SNT", "ZEC", "ZRX"],
+  //   USDT: ["BAT", "BTC", "DASH", "DOGE", "LTC", "XMR", "XRP"]
+  // };
   let bittrexBTCCoins: any = {
-    BTC: ["ardr", "bat", "bnt", "burst", "cvc", "dash", "dcr", "dgb", "doge", "etc", 
-    "eth", "fct", "game", "gnt", "lbc", "loom", "lsk", "ltc", "mana", "nav", 
-    "nmr", "nxt", "omg", "poly", "ppc", "qtum", "rep", "sbd", "sc", "snt", 
-    "steem", "storj", "strat", "sys", "via", "vtc", "xcp", "xem", "xlm", "xmr", 
-    "xrp", "zec", "zrx"],
-    ETH: ["BAT", "BNT", "CVC", "ETC", "GNT", "MANA", "OMG", "QTUM", 
-      "REP", "SNT", "ZEC", "ZRX"],
-    USDT: ["BAT", "BTC", "DASH", "DOGE", "LTC", "XMR", "XRP"]
-
+    BTC: ["ARDR","BAT","BNT","BURST","CVC","DASH","DCR","DGB","DOGE","ETC","ETH","FCT","GAME",
+      "GNT","LBC","LOOM","LSK","LTC","MANA","NAV","NMR","NXT","OMG","POLY","PPC","QTUM","REP","SBD",
+      "SC","SNT","STEEM","STORJ","STRAT","SYS","VIA","VTC","XCP","XEM","XMR","XRP","ZEC","ZRX"],
+    ETH: ["BAT","BNT","CVC","ETC","GNT","MANA","OMG","QTUM","REP","SNT","ZEC","ZRX"],
+    USDT: ["BAT","BTC","DASH","DOGE","ETC","ETH","LTC","NXT","SC","XMR","XRP","ZEC","ZRX"]
   };
+
   let baseMarkets = ["BTC", "ETH", "USDT"];
   baseMarkets.forEach((baseMkt: string) => {
     console.log("Processing basemkt:", baseMkt);

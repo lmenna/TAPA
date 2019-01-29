@@ -20,10 +20,7 @@ var appRouter = function appRouter(app) {
   app.use(express.static(path.join(dirname, 'build-ui')));
   app.get('/', function (req, res) {
     res.sendFile(path.join(dirname, 'build-ui', 'index.html'));
-  }); // app.get("/", function(req, res) {
-  //   res.status(200).send("Welcome to our restful API");
-  // });
-  // Route to query mongoDB for arbitrage data.
+  }); // Route to query mongoDB for arbitrage data.
 
   app.get("/arbdata",
   /*#__PURE__*/

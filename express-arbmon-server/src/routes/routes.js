@@ -16,10 +16,6 @@ var appRouter = function (app) {
     res.sendFile(path.join(dirname, 'build-ui', 'index.html'));
   });
   
-  // app.get("/", function(req, res) {
-  //   res.status(200).send("Welcome to our restful API");
-  // });
-
   // Route to query mongoDB for arbitrage data.
   app.get("/arbdata", async function (req, res) {
 

@@ -6,16 +6,16 @@
 
 require("@babel/polyfill");
 
-import {getExchangeData} from "./utils/getCryptoData";
+import {getExchangeMkt, getDataFromURL} from "./utils/getCryptoData";
 import {comparePoloniexCoinbase, compareAllPoloniexBittrex, compareAllPoloniexHitbtc, compareAllBittrexHitbtc,
   compareAllPoloniexYobit, internalCompareForYobit} from "./utils/comparePricingData";
 
 let XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 
+const timeInSecondsBetweenPriceChecks = 15;
+
 const poloniexURL: string = "https://poloniex.com/public?command=returnTicker"; 
 const coinbaseURL: string = "https://api.pro.coinbase.com/products"; 
-const bittrexURLAll: string = "https://bittrex.com/api/v1.1/public/getmarketsummaries";
-const hitbtcURL: string = "https://api.hitbtc.com/api/2/public/ticker";
 const yobitBaseURL: string = "https://yobit.net/api/3/ticker/"
 const threshold: number = 1.01;
 let numberOfChecks: number = 0;
@@ -24,8 +24,6 @@ let maxBuyArb: number = 0;
 let maxSellArb: number = 0;
 let maxSellArbETH: number = 0;
 let maxSellArbXMR: number = 0;
-
-const timeInSecondsBetweenPriceChecks = 15;
 
 /* formatTimestamp
  * desc: Utility to truncate the output of long time stamps to include only the date and time parts.
@@ -188,10 +186,10 @@ function analyzePoloXMRPrices(exchangePrices: any, timeStamp: Date) {
 }
 
 async function runPoloCoinbaseCompare() {
-  let poloniexData = await getExchangeData(poloniexURL);
-  let coinbaseDataZEC = await getExchangeData(coinbaseURL+"/ZEC-USDC/book");
-  let coinbaseDataETH = await getExchangeData(coinbaseURL+"/ETH-USDC/book");
-  let coinbaseDataBTC = await getExchangeData(coinbaseURL+"/BTC-USDC/book");
+  let poloniexData = await getExchangeMkt("poloniex");
+  let coinbaseDataZEC = await getDataFromURL(coinbaseURL+"/ZEC-USDC/book");
+  let coinbaseDataETH = await getDataFromURL(coinbaseURL+"/ETH-USDC/book");
+  let coinbaseDataBTC = await getDataFromURL(coinbaseURL+"/BTC-USDC/book");
   comparePoloniexCoinbase(poloniexData, coinbaseDataZEC, "ZEC");
   comparePoloniexCoinbase(poloniexData, coinbaseDataETH, "ETH");
   comparePoloniexCoinbase(poloniexData, coinbaseDataBTC, "BTC");
@@ -203,14 +201,10 @@ async function runPoloBittrexCompare() {
   console.log(`------>>> Begin compare cycle: ${numberOfChecks}.`)
   // Get market data from the exchanges
   try {
-    let [poloniexData, bittrexALL] = await Promise.all([getExchangeData(poloniexURL), getExchangeData(bittrexURLAll)]);
+    let [poloniexData, bittrexALL] = await Promise.all([getExchangeMkt("poloniex"), getExchangeMkt("bittrex")]);
     console.log(`poloTimestamp:    ${formatTimestamp(poloniexData.timeStamp)}`);
     console.log(`bittrexTimestamp: ${formatTimestamp(bittrexALL.timeStamp)}`);
     console.log(`Diff: ${Math.abs(poloniexData.timeStamp - bittrexALL.timeStamp)}ms`);
-    // Poloniex section - All coins from one request
-    // let poloniexData = await getExchangeData(poloniexURL);
-    // Bittrex section - All coins from one request.
-    // let bittrexALL = await getExchangeData(bittrexURLAll);
     let bittrexJSON: any = JSON.parse(bittrexALL.exchangeData);
     let bittrexBTCCoins: any = {
       BTC: ["ARDR","BAT","BNT","BURST","CVC","DASH","DCR","DGB","DOGE","ETC","ETH","FCT","GAME",
@@ -239,6 +233,7 @@ async function runPoloBittrexCompare() {
   }
   catch(err) {
     console.log("Error processing Polo Bittrex compare.");
+    console.log(err);
   }
 }
 
@@ -251,16 +246,10 @@ async function runPoloHitbtcCompare() {
   numberOfChecks++;
   console.log(`------>>> Begin compare cycle: ${numberOfChecks}.`)
   try {
-    let [hitbtcData, poloniexData] = await Promise.all([getExchangeData(hitbtcURL), getExchangeData(poloniexURL)]);
+    let [hitbtcData, poloniexData] = await Promise.all([getExchangeMkt("hitbtc"), getExchangeMkt("poloniex")]);
     console.log(`poloTimestamp:   ${formatTimestamp(poloniexData.timeStamp)}`);
     console.log(`hitBtcTimestamp: ${formatTimestamp(hitbtcData.timeStamp)}`);
     console.log(`Diff: ${Math.abs(poloniexData.timeStamp - hitbtcData.timeStamp)}ms`);
-
-    // Get data from the exchanges
-    // Hitbtc section - All coins from one request.
-    //let hitbtcData = await getExchangeData(hitbtcURL);  
-    // Poloniex section - All coins from one request
-    // let poloniexData = await getExchangeData(poloniexURL);
 
     // This is the list of markets shared between Poloniex and Hitbtc.
     let hitbtcMarkets: Array<string> = ["BCNBTC","DASHBTC","DOGEBTC","ETHBTC","LSKBTC","LTCBTC","NXTBTC","SBDBTC","SCBTC",
@@ -298,8 +287,8 @@ async function runBittrexHitbtcCompare() {
 
   numberOfChecks++;
   // Get market data from the two exchanges.
-  let hitbtcData = await getExchangeData(hitbtcURL);  
-  let bittrexData = await getExchangeData(bittrexURLAll);
+  let hitbtcData = await getExchangeMkt("hitbtc");  
+  let bittrexData = await getExchangeMkt("bittrex");
   compareAllBittrexHitbtc(bittrexData, hitbtcData);
 }
 
@@ -308,7 +297,7 @@ async function runPoloYobitCompare() {
 
   numberOfChecks++;
   // Poloniex section - All coins from one request
-  let poloniexData = await getExchangeData(poloniexURL);
+  let poloniexData = await getExchangeMkt("poloniex");
   // Bittrex section - All coins from one request.
   // Bittrex market summary - All coins from one request.
   let yobitMarkets = [
@@ -322,7 +311,7 @@ async function runPoloYobitCompare() {
   }
   let yobitURL = yobitBaseURL + tickerList;
   console.log("Run query for data at:", yobitURL);
-  let yobitData = await getExchangeData(yobitURL);  
+  let yobitData = await getDataFromURL(yobitURL);  
   console.log("yobitData:", yobitData);
   compareAllPoloniexYobit(poloniexData, yobitData);
 }
@@ -370,7 +359,7 @@ async function runYobitBaseMktCompare(baseMarkets: Array<string>, yobitMarkets: 
     else
       tickerListStr += "-" + baseMarkets[1] + "_" + baseMarkets[0];
   }
-  let yobitMkt = await getExchangeData(yobitBaseURL + tickerListStr);  
+  let yobitMkt = await getDataFromURL(yobitBaseURL + tickerListStr);  
   try {
     let mktData = JSON.parse(yobitMkt.exchangeData);
     // Analyze Yobit market looking for price anomolies

@@ -49,7 +49,7 @@ function compareCurrencyPair(timeStamp: Date, poloJSON: any, cbJSON: any, ccy1: 
   let poloSellAt = +poloJSON[poloPair].highestBid;
   let coinbaseSellAt = +cbJSON.bids[0][0];
   let coinbaseBuyAt = +cbJSON.asks[0][0];
-  outputArbResults(poloBuyAt, poloSellAt, coinbaseSellAt, coinbaseBuyAt, "Coinbase", poloPair, timeStamp);
+  outputArbResults(poloBuyAt, poloSellAt, "Poloniex", coinbaseSellAt, coinbaseBuyAt, "Coinbase", poloPair, timeStamp);
  }
 
  /* compareAllPoloniexBittrex
@@ -59,11 +59,7 @@ function compareCurrencyPair(timeStamp: Date, poloJSON: any, cbJSON: any, ccy1: 
 function compareAllPoloniexBittrex(poloJSON: any, bittrexJSON: any) {
 
   let reportingTimestamp = new Date();
-  let poloTimestamp = poloJSON.timeStamp;
   let poloAllMarkets = JSON.parse(poloJSON.exchangeData);
-  let bittrexTimestamp = bittrexJSON.timeStamp;
-  console.log(poloTimestamp);
-  console.log(bittrexTimestamp);
   for(let bittrexMkt in bittrexJSON.exchangeData){
     let poloMktName = poloMktFromBittrexName(bittrexMkt);
     let poloMktElement = poloAllMarkets[poloMktName];
@@ -86,23 +82,23 @@ function comparePoloniexBittrexMktElement(poloJSON: any, bittrexJSON: any, poloP
   let poloSellAt = +poloJSON.highestBid;
   let bittrexSellAt = +bittrexJSON.Bid;
   let bittrexBuyAt = +bittrexJSON.Ask;
-  outputArbResults(poloBuyAt, poloSellAt, bittrexSellAt, bittrexBuyAt, "Bittrex", poloPair, timeStamp);
+  outputArbResults(poloBuyAt, poloSellAt, "Poloniex", bittrexSellAt, bittrexBuyAt, "Bittrex", poloPair, timeStamp);
 }
 
-async function outputArbResults(poloBuyAt: number, poloSellAt: number, 
-  exchange2SellAt: number, exchange2BuyAt: number, exchange2Name: string, 
-  poloPair: string, timeStamp: Date) {
+async function outputArbResults(exch1BuyAt: number, exch1SellAt: number, exch1Name: string, 
+  exch2SellAt: number, exch2BuyAt: number, exch2Name: string, 
+  ccyPair: string, timeStamp: Date) {
 
   let dbOutput = {
     key: "",
-    exch1Name: "Poloniex",
-    exch2Name: exchange2Name,
+    exch1Name,
+    exch2Name,
     timeStamp: timeStamp.toString().slice(0,25),
-    ccyPair: poloPair,
-    exch1BuyAt: poloBuyAt,
-    exch1SellAt: poloSellAt,
-    exch2BuyAt: exchange2BuyAt,
-    exch2SellAt: exchange2SellAt,
+    ccyPair,
+    exch1BuyAt,
+    exch1SellAt,
+    exch2BuyAt,
+    exch2SellAt,
     gainLoss: "LOSS",
     urgentTrade: false,
     arbPercent: 0,
@@ -110,29 +106,29 @@ async function outputArbResults(poloBuyAt: number, poloSellAt: number,
     tradeInstructions: "",
     time: Math.round(new Date().getTime()/1000)
   };
- // Check for case of Buy at Exchange2 and Sell at Exchange1 (Polo)
-  let arbOpportunity = poloSellAt-exchange2BuyAt;
-  let arbPercent = 100*(poloSellAt-exchange2BuyAt)/( (poloSellAt+exchange2BuyAt) / 2);
+ // Check for case of Buy at Exchange2 and Sell at Exchange1
+  let arbOpportunity = exch1SellAt-exch2BuyAt;
+  let arbPercent = 100*(exch1SellAt-exch2BuyAt)/( (exch1SellAt+exch2BuyAt) / 2);
   dbOutput.arbPercent = arbPercent;
   dbOutput.exch1BuyOrSell = "Sell";
   if(arbPercent > arbReportingThresholdPercent) {
     dbOutput.gainLoss = "GAIN";
-    dbOutput.tradeInstructions = `${poloPair} BUY at ${exchange2Name} for ${exchange2BuyAt.toFixed(9)}. SELL at Polo for ${poloSellAt.toFixed(9)} Gain ${arbPercent.toFixed(6)}%`;
+    dbOutput.tradeInstructions = `${ccyPair} BUY at ${exch2Name} for ${exch2BuyAt.toFixed(9)}. SELL at ${exch1Name} for ${exch1SellAt.toFixed(9)} Gain ${arbPercent.toFixed(6)}%`;
     console.log(dbOutput.gainLoss, ": ", dbOutput.tradeInstructions);
     if (arbPercent > arbEmailThresholdPercent) {
       dbOutput.urgentTrade = true;
-      SendMessage(`${poloPair}: BUY at ${exchange2Name} and SELL at Poloniex`, dbOutput.tradeInstructions);
+      SendMessage(`${ccyPair}: BUY at ${exch2Name} and SELL at ${exch1Name}`, dbOutput.tradeInstructions);
     }
   }
   else { 
     dbOutput.gainLoss = "LOSS";
     dbOutput.urgentTrade = false;
-    dbOutput.tradeInstructions = `${poloPair} BUY at ${exchange2Name} for ${exchange2BuyAt.toFixed(9)}. SELL at Polo for ${poloSellAt.toFixed(9)} Loss ${arbPercent.toFixed(6)}%`;
+    dbOutput.tradeInstructions = `${ccyPair} BUY at ${exch2Name} for ${exch2BuyAt.toFixed(9)}. SELL at ${exch1Name} for ${exch1SellAt.toFixed(9)} Loss ${arbPercent.toFixed(6)}%`;
     if (reportLoses) {
-      console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: ${exchange2Name}, ${exchange2BuyAt.toFixed(8)} is greater than poloSellAt, ${poloSellAt.toFixed(8)}, DIFF, ${arbOpportunity.toFixed(6)}`);
+      console.log(`${formatTimestamp(timeStamp)}: Pair: ${ccyPair}, Result: LOSS, Desc: ${exch2Name}, ${exch2BuyAt.toFixed(8)} is greater than SellAt, ${exch1SellAt.toFixed(8)}, DIFF, ${arbOpportunity.toFixed(6)}`);
     }
   }
-  let keyStr = "Buy"+exchange2Name+"SellPoloniex"+poloPair;
+  let keyStr = "Buy"+exch2Name+"Sell"+exch1Name+ccyPair;
   let key = {
     "key": keyStr
   };
@@ -144,29 +140,29 @@ async function outputArbResults(poloBuyAt: number, poloSellAt: number,
      await writeResultsToMongoSync(dbOutput, mongoDBName, mongoDBCollectionHist);
     }
   }
-  // Check for case of Buy at Exchange1(Polo) and Sell at Exchange2
-  arbOpportunity = exchange2SellAt-poloBuyAt;
-  arbPercent = 100*(exchange2SellAt-poloBuyAt)/( (exchange2SellAt+poloBuyAt) / 2);
+  // Check for case of Buy at Exchange1 and Sell at Exchange2
+  arbOpportunity = exch2SellAt-exch1BuyAt;
+  arbPercent = 100*(exch2SellAt-exch1BuyAt)/( (exch2SellAt+exch1BuyAt) / 2);
   dbOutput.arbPercent = arbPercent;
   dbOutput.exch1BuyOrSell = "Buy";
   if(arbPercent > arbReportingThresholdPercent) {    
     dbOutput.gainLoss = "GAIN";
-    dbOutput.tradeInstructions = `${poloPair} BUY at Polo for ${poloBuyAt.toFixed(9)}. SELL ${exchange2Name} for ${exchange2SellAt.toFixed(9)} Gain ${arbPercent.toFixed(6)}%`;
+    dbOutput.tradeInstructions = `${ccyPair} BUY at ${exch1Name} for ${exch1BuyAt.toFixed(9)}. SELL ${exch2Name} for ${exch2SellAt.toFixed(9)} Gain ${arbPercent.toFixed(6)}%`;
     console.log(dbOutput.gainLoss, ": ", dbOutput.tradeInstructions);
     if (arbPercent > arbEmailThresholdPercent) {
       dbOutput.urgentTrade = true;
-      SendMessage(`${poloPair}: BUY at Poloniex and SELL at ${exchange2Name}`, dbOutput.tradeInstructions);
+      SendMessage(`${ccyPair}: BUY at ${exch1Name} and SELL at ${exch2Name}`, dbOutput.tradeInstructions);
     }
   }
   else {
     dbOutput.gainLoss = "LOSS";
     dbOutput.urgentTrade = false;
-    dbOutput.tradeInstructions = `${poloPair} BUY at Polo for ${poloBuyAt.toFixed(9)} SELL ${exchange2Name} for ${exchange2SellAt.toFixed(9)} Loss ${arbPercent.toFixed(6)}%`;
+    dbOutput.tradeInstructions = `${ccyPair} BUY at ${exch1Name} for ${exch1BuyAt.toFixed(9)} SELL ${exch2Name} for ${exch2SellAt.toFixed(9)} Loss ${arbPercent.toFixed(6)}%`;
     if (reportLoses) {
-      console.log(`${formatTimestamp(timeStamp)}: Pair: ${poloPair}, Result: LOSS, Desc: poloBuyAt, ${poloBuyAt.toFixed(9)} is greater than ${exchange2Name}SellAt, ${exchange2SellAt.toFixed(8)}. DIFF, ${arbOpportunity.toFixed(7)}`);
+      console.log(`${formatTimestamp(timeStamp)}: Pair: ${ccyPair}, Result: LOSS, Desc: BuyAt, ${exch1BuyAt.toFixed(9)} is greater than ${exch2Name}SellAt, ${exch2SellAt.toFixed(8)}. DIFF, ${arbOpportunity.toFixed(7)}`);
     }
   }
-  keyStr = "BuyPoloniexSell"+exchange2Name+poloPair;
+  keyStr = "Buy"+exch1Name+"Sell"+exch2Name+ccyPair;
   key = {
     "key": keyStr
   };
@@ -198,11 +194,7 @@ function poloMktFromBittrexName(bittrexMktName: string): string {
 function compareAllPoloniexHitbtc(poloJSON: any, hitbtcJSON: any) {
   
   let reportingTimestamp = new Date();
-  let poloTimestamp = poloJSON.timeStamp;
   let poloAllMarkets = JSON.parse(poloJSON.exchangeData);
-  let hitbtcTimestamp = hitbtcJSON.timeStamp;
-  console.log(poloTimestamp);
-  console.log(hitbtcTimestamp);
   for(let hitbtcMkt in hitbtcJSON.exchangeData){
     let poloMktName = poloMktFromHitbtcName(hitbtcMkt);
     let poloMktElement = poloAllMarkets[poloMktName];
@@ -224,7 +216,7 @@ function comparePoloniexHitbtcMktElement(poloMktElement: any, hitbtcMktElement: 
     console.log("Got bad rates from the hitbtc for:", poloMktName);
     return;
   }
-  outputArbResults(poloBuyAt, poloSellAt, hitbtcSellAt, hitbtcBuyAt, "Hitbtc", poloMktName, reportingTimestamp);
+  outputArbResults(poloBuyAt, poloSellAt, "Poloniex", hitbtcSellAt, hitbtcBuyAt, "Hitbtc", poloMktName, reportingTimestamp);
 }
 
 /* poloMktFromHitbtcName
@@ -234,30 +226,121 @@ function poloMktFromHitbtcName(hitbtcMktName: string): string {
 
   const poloMktNames: any = {
     BCNBTC:   "BTC_BCN",
-    BNTUSDT:  "USDT_BNT",
-    DASHBTC:  "BTC_DASH",
-    DASHUSDT: "USDT_DASH",
-    DOGEBTC:  "BTC_DOGE",
-    DOGEUSDT: "USDT_DOGE",
-    DGBBTC:   "BTC_DGB",
-    EOSBTC:   "BTC_EOS",
-    EOSUSDT:  "USDT_EOS",
-    ETCUSDT:  "USDT_ETC",
-    ETHUSDT:  "USDT_ETH",
-    LSKBTC:   "BTC_LSK",
-    MAIDBTC:  "BTC_MAID",
-    MANABTC:  "BTC_MANA",
-    OMGBTC:   "BTC_OMG",
-    PPCBTC:   "BTC_PPC",
-    QTUMBTC:  "BTC_QTUM",
-    REPBTC:   "BTC_REP",
-    REPUSDT:  "USDT_REP",
-    XEMBTC:   "BTC_XEM",
+    DASHBTC:   "BTC_DASH",
+    DOGEBTC:   "BTC_DOGE",
     ETHBTC:   "BTC_ETH",
-    ZECETH:   "ETH_ZEC"
+    LSKBTC:   "BTC_LSK",
+    LTCBTC:   "BTC_LTC",
+    NXTBTC:   "BTC_NXT",
+    SBDBTC:   "BTC_SBD",
+    SCBTC:   "BTC_SC",
+    STEEMBTC:   "BTC_STEEM",
+    XEMBTC:   "BTC_XEM",
+    XMRBTC:   "BTC_XMR",
+    ARDRBTC:   "BTC_ARDR",
+    ZECBTC:   "BTC_ZEC",
+    MAIDBTC:   "BTC_MAID",
+    REPBTC:   "BTC_REP",
+    ETCBTC:   "BTC_ETC",
+    BNTBTC:   "BTC_BNT",
+    SNTETH:   "ETH_SNT",
+    OMGETH:   "ETH_OMG",
+    ETCETH:   "ETH_ETC",
+    ZECETH:   "ETH_ZEC",
+    XRPBTC:   "BTC_XRP",
+    STRATBTC:   "BTC_STRAT",
+    EOSETH:   "ETH_EOS",
+    EOSBTC:   "BTC_EOS",
+    BNTETH:   "ETH_BNT",
+    ZRXBTC:   "BTC_ZRX",
+    ZRXETH:   "ETH_ZRX",
+    PPCBTC:   "BTC_PPC",
+    QTUMETH:   "ETH_QTUM",
+    DGBBTC:   "BTC_DGB",
+    OMGBTC:   "BTC_OMG",
+    SNTBTC:   "BTC_SNT",
+    XRPUSDT:   "USDT_XRP",
+    MANAETH:   "ETH_MANA",
+    MANABTC:   "BTC_MANA",
+    QTUMBTC:   "BTC_QTUM",
+    LSKETH:   "ETH_LSK",
+    REPETH:   "ETH_REP",
+    REPUSDT:   "USDT_REP",
+    GNTBTC:   "BTC_GNT",
+    GNTETH:   "ETH_GNT",
+    BTSBTC:   "BTC_BTS",
+    BATBTC:   "BTC_BAT",
+    BATETH:   "ETH_BAT",
+    BCHABCBTC:   "BTC_BCHABC",
+    BCHSVBTC:   "BTC_BCHSV",
+    NMRBTC:   "BTC_NMR",
+    POLYBTC:   "BTC_POLY",
+    STORJBTC:   "BTC_STORJ"
   };
   return(poloMktNames[hitbtcMktName]);
 }
+
+/* compareAllBittrexHitbtc
+*  desc: Takes the bittrex and hitbtc data in JSON format and compares all overlaping markets for arbitrage.
+*       Exported function called by the main app.js
+*/
+function compareAllBittrexHitbtc(bittrexJSON: any, hitbtcJSON: any) {
+  
+  let reportingTimestamp = new Date();
+  let bittrexTimestamp = bittrexJSON.timeStamp;
+  let bittrexAllMarkets = JSON.parse(bittrexJSON.exchangeData).result;
+  let hitbtcTimestamp = hitbtcJSON.timeStamp;
+  let hitbtcAllMarkets = JSON.parse(hitbtcJSON.exchangeData);
+  console.log("In compareAllBittrexHitbtc");
+  console.log(bittrexTimestamp);
+  console.log(hitbtcTimestamp);
+  bittrexAllMarkets.forEach( (bittrexMktElem: any) => {
+    let hitbtcMktName = hitBtcMktFromBittrexName(bittrexMktElem.MarketName);
+    let hitbtcMkt = hitbtcAllMarkets.filter((item: any) => {
+      return(item.symbol===hitbtcMktName);
+    });
+    if(hitbtcMkt.length!=0) {
+      let badMakerts = ["BTC-BCH", "ETH-BCH", "USD-BCH", "BTC-BITS", "BTC-XDN", "BTC-SWT"];
+        // let badMakerts = ["BTC-BCH", "ETH-BCH", "USD-BCH", "BTC-BITS", "BTC-SPC", "BTC-SWT", "BTC-CMCT",
+        // "BTC-NLC2", "BTC-WAVES"];
+      if (!badMakerts.includes(bittrexMktElem.MarketName)) {
+        compareBittrexHitbtcMktElement(bittrexMktElem, hitbtcMkt[0], bittrexMktElem.MarketName, new Date());
+      }
+    }
+  });
+}
+
+/* compareBittrexHitbtcMktElement
+ * desc: Pulls out the buy and sell prices for a single currency pair for Poloniex and Hitbtc.
+ *       Forwards this to the output method to record the arbitrage results.
+ */
+function compareBittrexHitbtcMktElement(bittrexMktElement: any, hitbtcMktElement: any, bittrexMktName: string, reportingTimestamp: Date) {
+
+  let bittrexBuyAt = +bittrexMktElement.Ask;
+  let bittrexSellAt = +bittrexMktElement.Bid;
+  let hitbtcSellAt = +hitbtcMktElement.bid;
+  let hitbtcBuyAt = +hitbtcMktElement.ask;
+  if (!hitbtcSellAt || !hitbtcBuyAt) {
+    console.log("Got bad rates from the hitbtc for:", bittrexMktName);
+    return;
+  }
+  if (!bittrexBuyAt || !bittrexSellAt) {
+    console.log("Got bad rates from the bittrex for:", bittrexMktName);
+    return;
+  }
+  outputArbResults(bittrexBuyAt, bittrexSellAt, "Bittrex", 
+    hitbtcSellAt, hitbtcBuyAt, "Hitbtc", bittrexMktName, reportingTimestamp);
+}
+
+/* hitBtcMktFromBittrexName
+ * desc: Maps from Bittrex tickers to Hitbtc tickers.
+ */
+function hitBtcMktFromBittrexName(bittrexMktName: string): string {
+
+    let splitTicker = bittrexMktName.split("-");
+    return(splitTicker[1]+splitTicker[0]);
+}
+
 
 /* compareAllPoloniexYobit
  * desc: Compares market data across many currency pairs between Poloniex and Yobit.
@@ -291,7 +374,7 @@ function comparePoloniexYobitMktElement(poloMktElement: any, yobitMktElement: an
   let poloSellAt = +poloMktElement.highestBid;
   let yobitSellAt = +yobitMktElement.sell;
   let yobitBuyAt = +yobitMktElement.buy;
-  outputArbResults(poloBuyAt, poloSellAt, yobitSellAt, yobitBuyAt, "Yobit", poloMktName, reportingTimestamp);
+  outputArbResults(poloBuyAt, poloSellAt, "Poloniex", yobitSellAt, yobitBuyAt, "Yobit", poloMktName, reportingTimestamp);
 }
 
 /* poloMktFromYobitName
@@ -355,5 +438,5 @@ async function internalCompareForYobit(mktData : any, yobitMarkets : Array<strin
   }
 }
 
-export {comparePoloniexCoinbase, compareAllPoloniexBittrex, compareAllPoloniexHitbtc, 
+export {comparePoloniexCoinbase, compareAllPoloniexBittrex, compareAllPoloniexHitbtc, compareAllBittrexHitbtc,
   compareAllPoloniexYobit, internalCompareForYobit};

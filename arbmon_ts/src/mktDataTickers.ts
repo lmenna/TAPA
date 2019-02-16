@@ -5,19 +5,95 @@
 
 require("@babel/polyfill");
 
-import {getExchangeData} from "./utils/getCryptoData";
+import {getExchangeMkt} from "./utils/getCryptoData";
 
 const poloniexURL: string = "https://poloniex.com/public?command=returnTicker"; 
 const bittrexURLAll: string = "https://bittrex.com/api/v1.1/public/getmarketsummaries";
 const hitbtcURL: string = "https://api.hitbtc.com/api/2/public/ticker";
+const binanceURL: string = "https://api.binance.com/api/v3/ticker/bookTicker";
+
+
+async function runBittrexBinanceTickerCompare() {
+  // Poloniex section - All coins from one request
+  let bittrexData = await getExchangeMkt("bittrex");
+  const bittrexJSON = JSON.parse(bittrexData.exchangeData);
+  const bittrexResults: Array<any> = bittrexJSON.result;
+  // Binance section - All coins from one request.
+  let binanceALL = await getExchangeMkt("binance");
+  const binanceResults: Array<any> = JSON.parse(binanceALL.exchangeData);
+  let btcMatch: Array<string> = [];
+  let ethMatch: Array<string> = [];
+  let usdtMatch: Array<string> = [];
+  binanceResults.forEach( (binanceElement) => {
+    const bittrexTicker = getBittrexTickerFromBinance(binanceElement.symbol);
+    for(let idx=0; idx<bittrexResults.length; idx++) {
+      if(bittrexResults[idx].MarketName===bittrexTicker) {
+        console.log(`---> Match Binance: ${binanceElement.symbol} Bittrex: ${bittrexTicker}`);
+        break;
+      }
+    }
+  });
+}
+
+
+function getBittrexTickerFromBinance(binanceTicker : string): string {
+
+  let bittrexTicker = "";
+  const baseTickers = ["BTC", "ETH", "USDC", "USDT"];
+  for(let baseIdx = 0; baseIdx<baseTickers.length; baseIdx++) {
+    const baseTickerFound = binanceTicker.search(baseTickers[baseIdx]);
+    if (baseTickerFound >= 2) {
+      const secondaryTicker = binanceTicker.slice(0, baseTickerFound);
+      bittrexTicker = `${baseTickers[baseIdx]}-${secondaryTicker}`;
+      break;
+    }  
+  }
+  return(bittrexTicker);
+}
+
+
+
+async function runPoloBinanceTickerCompare() {
+  // Poloniex section - All coins from one request
+  let poloniexData = await getExchangeMkt("poloniex");
+  const poloniexJSON = JSON.parse(poloniexData.exchangeData);
+  // Binance section - All coins from one request.
+  let binanceALL = await getExchangeMkt("binance");
+  const binanceResults: Array<any> = JSON.parse(binanceALL.exchangeData);
+  let btcMatch: Array<string> = [];
+  let ethMatch: Array<string> = [];
+  let usdtMatch: Array<string> = [];
+  binanceResults.forEach( (binanceElement) => {
+    const poloTicker = getPoloTickerFromBinance(binanceElement.symbol);
+    if(poloniexJSON[poloTicker]) {
+       console.log("Match:", binanceElement.symbol, " ", poloTicker);
+    }
+  });
+}
+
+function getPoloTickerFromBinance(binanceTicker : string): string {
+
+  let poloTicker = "";
+  const baseTickers = ["BTC", "ETH", "USDC", "USDT"];
+  for(let baseIdx = 0; baseIdx<baseTickers.length; baseIdx++) {
+    const baseTickerFound = binanceTicker.search(baseTickers[baseIdx]);
+    if (baseTickerFound >= 2) {
+      const secondaryTicker = binanceTicker.slice(0, baseTickerFound);
+      poloTicker = `${baseTickers[baseIdx]}_${secondaryTicker}`;
+      break;
+    }  
+  }
+  return(poloTicker);
+}
+
 
 async function runPoloBittrexTickerCompare() {
   // Poloniex section - All coins from one request
-  let poloniexData = await getExchangeData(poloniexURL);
+  let poloniexData = await getExchangeMkt("poloniex");
   const poloniexJSON = JSON.parse(poloniexData.exchangeData);
   //console.log("Poloniex:", poloniexJSON);
   // Bittrex section - All coins from one request.
-  let bittrexALL = await getExchangeData(bittrexURLAll);
+  let bittrexALL = await getExchangeMkt("bittrex");
   let bittrexJSON = JSON.parse(bittrexALL.exchangeData);
   //console.log("Bittrex:", bittrexJSON);
   const bittrexResults: Array<any> = bittrexJSON.result;
@@ -92,7 +168,6 @@ function getPoloTickerFromHitbtc(hitbtcTicker : string): string {
  return("NoPolo");
 }
 
-
 async function runBittrexHitbtcTickerCompare() {
   // Bittrex section - All coins from one request.
   let bittrexALL = await getExchangeData(bittrexURLAll);
@@ -122,4 +197,6 @@ function getHitbtcTickerFromBittrex(bittrexTicker : string): string {
 
 //runPoloBittrexTickerCompare();
 //runPoloHitbtcTickerCompare();
-runBittrexHitbtcTickerCompare();
+//runBittrexHitbtcTickerCompare();
+//runPoloBinanceTickerCompare();
+runBittrexBinanceTickerCompare();

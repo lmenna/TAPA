@@ -10,7 +10,8 @@
     "app": "npm run build && source SetMongoEnv.sh && node lib/app.js",
     "onetime": "npm run build && source SetMongoEnv.sh && node lib/oneTimeUpdate.js",
     "reports": "npm run build && source SetMongoEnv.sh && node lib/runReports.js",
-    "tickers": "npm run build && node lib/mktDataTickers"
+    "tickers": "npm run build && node lib/mktDataTickers",
+    "pricemon": "npm run build && node lib/priceMon"
   },
   "keywords": [],
   "author": "",

@@ -6,9 +6,9 @@
 
 require("@babel/polyfill");
 
-import {getExchangeMkt, getDataFromURL} from "./utils/getCryptoData";
+import {getExchangeMkt, getDataFromURL, getExchangeMktDepth} from "./utils/getCryptoData";
 import {comparePoloniexCoinbase, compareAllPoloniexBittrex, compareAllPoloniexHitbtc, compareAllBittrexHitbtc,
-  compareAllPoloniexYobit, internalCompareForYobit} from "./utils/comparePricingData";
+  compareAllPoloniexYobit, internalCompareForYobit, compareAllPoloniexBinance} from "./utils/comparePricingData";
 
 let XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 
@@ -37,38 +37,31 @@ function formatTimestamp(timeStamp: Date) {
  *       coin3 exchanged back into coin1.
  *       This compare looks only within the Poloniex exchange.
 */
-function poloInternalCompare() {
+async function poloInternalCompare() {
 
   console.log("BEGIN: poloInternalCompare");
-  let xmlhttp = new XMLHttpRequest(),
-    method = "GET",
-    url = poloniexURL;
-
-  console.log("Loading data from : Http.send(", url, ")");
-  xmlhttp.open(method, url, true);
-  xmlhttp.onerror = function () {
-    console.log("** An error occurred during the transaction");
-  };
-  xmlhttp.onreadystatechange = function() {
-    if (this.readyState===4 && this.status===200) {
-      let exchangeData = xmlhttp.responseText;
-      numberOfChecks++;
-      let timeStamp = new Date();
-      let exchangeObject = JSON.parse(exchangeData);
-      let coins = ["FOAM", "ZEC", "LTC", "ETH", "XRP", "STR", "XMR", "DOGE", "BCHABC", "BCHSV"];
-      let baseStableCoin = "USDC";
-      analyzePoloBTCPrices(exchangeObject, baseStableCoin, coins, timeStamp);
-      coins = ["BAT", "BNT", "DASH", "DOGE", "EOS", "ETC", "ETH", "GNT", "KNC", "LOOM", "LSK",
-        "LTC", "MANA", "NXT", "QTUM", "REP", "SC", "SNT", "STR", "XMR", "XRP", "ZEC", "ZRX"];
-      baseStableCoin = "USDT"; 
-      analyzePoloBTCPrices(exchangeObject, baseStableCoin, coins, timeStamp);
-      analyzePoloETHPrices(exchangeObject, timeStamp);
-      analyzePoloXMRPrices(exchangeObject, timeStamp);
-    }
+  try {
+    let poloniexData = await getExchangeMkt("poloniex");
+    numberOfChecks++;
+    let timeStamp = new Date();
+    let exchangeObject = JSON.parse(poloniexData.exchangeData);
+    let coins = ["FOAM", "ZEC", "LTC", "ETH", "XRP", "STR", "XMR", "DOGE", "BCHABC", "BCHSV"];
+    let baseStableCoin = "USDC";
+    analyzePoloBTCPrices(exchangeObject, baseStableCoin, coins, timeStamp);
+    coins = ["BAT", "BNT", "DASH", "DOGE", "EOS", "ETC", "ETH", "GNT", "KNC", "LOOM", "LSK",
+      "LTC", "MANA", "NXT", "QTUM", "REP", "SC", "SNT", "STR", "XMR", "XRP", "ZEC", "ZRX"];
+    baseStableCoin = "USDT"; 
+    analyzePoloBTCPrices(exchangeObject, baseStableCoin, coins, timeStamp);
+    analyzePoloETHPrices(exchangeObject, timeStamp);
+    analyzePoloXMRPrices(exchangeObject, timeStamp);
   }
-  xmlhttp.send();
+  catch(err) {
+    console.log("Error getting Poloniex market data.");
+    console.log(err);
+  }
   console.log("END: poloInternalCompare");
 }
+
 
 /* analyzePoloBTCPrices
  * desc: Takes the exchange prices from Poloniex and does the detailed compares to find arbitrage
@@ -93,7 +86,7 @@ function analyzePoloBTCPrices(exchangePrices: any, baseStableCoin:
     if (ArbRatio>1.0)
       console.log(`REC|${timeStamp}|${timeStampStr}|Buy|${baseStableCoin}|${curCoin}|ArbRatio:${ArbRatio}|${showMax}`);
     if (ArbRatio > threshold) {
-      console.log("Something dramatic needs to happen!");
+      console.log("Something needs to happen!");
     }
   });
   // Check if selling the coin will be profitable
@@ -112,7 +105,7 @@ function analyzePoloBTCPrices(exchangePrices: any, baseStableCoin:
     if (ArbRatio>1.0)
       console.log(`REC|${timeStamp}|${timeStampStr}|Sell|${baseStableCoin}|${curCoin}|ArbRatio:${ArbRatio}|${showMax}`);
     if (ArbRatio > threshold) {
-      console.log("Something dramatic needs to happen!");
+      console.log("Something needs to happen!");
     }
   });
 }
@@ -252,12 +245,12 @@ async function runPoloHitbtcCompare() {
     console.log(`Diff: ${Math.abs(poloniexData.timeStamp - hitbtcData.timeStamp)}ms`);
 
     // This is the list of markets shared between Poloniex and Hitbtc.
-    let hitbtcMarkets: Array<string> = ["BCNBTC","DASHBTC","DOGEBTC","ETHBTC","LSKBTC","LTCBTC","NXTBTC","SBDBTC","SCBTC",
-      "STEEMBTC","XEMBTC","XMRBTC","ARDRBTC","ZECBTC","MAIDBTC","REPBTC","ETCBTC","BNTBTC","SNTETH",
+    let hitbtcMarkets: Array<string> = ["BCNBTC","DASHBTC","DOGEBTC","ETHBTC","LSKBTC","LTCBTC","NXTBTC","SBDBTC"
+      ,"SCBTC", "STEEMBTC","XEMBTC","XMRBTC","ARDRBTC","ZECBTC","MAIDBTC","REPBTC","ETCBTC","BNTBTC","SNTETH",
       "OMGETH","ETCETH","ZECETH","XRPBTC","STRATBTC","EOSETH","EOSBTC","BNTETH","ZRXBTC","ZRXETH",
       "PPCBTC","QTUMETH","DGBBTC","OMGBTC","SNTBTC","XRPUSDT","MANAETH",
       "MANABTC","QTUMBTC","LSKETH","REPETH","REPUSDT","GNTBTC","GNTETH","BTSBTC","BATBTC","BATETH","BCHABCBTC",
-      "BCHSVBTC","NMRBTC","POLYBTC","STORJBTC"];
+      "BCHSVBTC","STORJBTC"];
 
     // Get subset of Hitbtc data only including the markets which overlap with Poloniex
     let hitbtcJSON = JSON.parse(hitbtcData.exchangeData);
@@ -275,6 +268,42 @@ async function runPoloHitbtcCompare() {
   }
   catch(err) {
     console.log("Error in Poloniex Hitbtc compare.");
+    console.log(err);
+  }
+}
+
+
+/* runPoloBinanceCompare
+ * desc: Loads market data from Poloniex and Binance then compares all markets they have in common.
+ *       Will be called repeatedly using a setInterval timer.
+ */
+async function runPoloBinanceCompare() {
+
+  numberOfChecks++;
+  console.log(`------>>> Begin compare cycle: ${numberOfChecks}.`)
+  try {
+    let [binanceData, poloniexData] = await Promise.all([getExchangeMkt("binance"), getExchangeMkt("poloniex")]);
+    console.log(`poloTimestamp:   ${formatTimestamp(poloniexData.timeStamp)}`);
+    console.log(`binanceTimestamp: ${formatTimestamp(binanceData.timeStamp)}`);
+    console.log(`Diff: ${Math.abs(poloniexData.timeStamp - binanceData.timeStamp)}ms`);
+    compareAllPoloniexBinance(poloniexData, binanceData);
+
+    // Get subset of Hitbtc data only including the markets which overlap with Poloniex
+    // let binanceJSON = JSON.parse(binanceData.exchangeData);
+    // let hitbtcTrimmed: any = {};
+    // hitbtcMarkets.forEach(market => {
+    //   hitbtcJSON.forEach((exchangeData: any) => {
+    //     if(exchangeData.symbol===market)
+    //       hitbtcTrimmed[market] = exchangeData;
+    //   });     
+    // });
+    // let hitbtcCompare: any = {};
+    // hitbtcCompare.timeStamp = hitbtcData.timeStamp;
+    // hitbtcCompare.exchangeData = hitbtcTrimmed;
+    // 
+  }
+  catch(err) {
+    console.log("Error in Poloniex Binance compare.");
     console.log(err);
   }
 }
@@ -371,6 +400,20 @@ async function runYobitBaseMktCompare(baseMarkets: Array<string>, yobitMarkets: 
   }
 }
 
+async function runTest() {
+
+  try {
+    let mktDepth = await getExchangeMktDepth("poloniex", "BTC_LBC",10);
+    console.log(mktDepth);    
+    mktDepth = await getExchangeMktDepth("bittrex", "BTC-LBC");
+    console.log(mktDepth);
+    mktDepth = await getExchangeMktDepth("hitbtc", "ETHBTC");
+    console.log(mktDepth);
+  }
+  catch(err) {
+    console.log(err);
+  }
+}
 
 // Set the default copare to run.
 let compareToRun: Promise<void> = runPoloBittrexCompare;
@@ -398,6 +441,11 @@ if (process.argv.length>=3) {
     }
     else if (process.argv[2]==="yobitinternal") {
       compareToRun = runYobitInternalCompare;
+      console.log("Running runYobitInternalCompare.")
+    }
+    else if (process.argv[2]==="polobinance") {
+      compareToRun = runPoloBinanceCompare;
+      console.log("Running runPoloBinanceCompare.")
     }
     else
     {
@@ -409,3 +457,5 @@ let newInteral = 1000*(timeInSecondsBetweenPriceChecks + 5*Math.random());
 console.log(`Setting the timer interval to ${newInteral/1000} seconds.` );
 compareToRun();
 intervalHandel = setInterval(compareToRun, newInteral);
+
+//runTest();

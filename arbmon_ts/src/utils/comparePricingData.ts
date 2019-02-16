@@ -5,6 +5,7 @@
 
 import {SendMessage} from "./sendEMail";
 import {updateResultsInMongo, writeResultsToMongoSync} from "./dbUtils";
+import {getExchangeMktDepth} from "./getCryptoData";
 
 // Set this to be a clear trading opportunity
 const arbEmailThresholdPercent = 1.25;
@@ -14,6 +15,8 @@ const arbReportingThresholdPercent = 0.0;
 let dbWriteEnabled = true;
 // Control reported output
 let reportLoses = false;
+// Control activation of new features
+let orderBookOn = false;
 // mongoDB - Database and collection
 const mongoDBName = "crypto";
 const mongoDBCollection = "marketdata.arbmon-p";
@@ -137,7 +140,7 @@ async function outputArbResults(exch1BuyAt: number, exch1SellAt: number, exch1Na
     await updateResultsInMongo(key, dbOutput, mongoDBName, mongoDBCollection);
     if (dbOutput.urgentTrade) {
       dbOutput.key += new Date().getTime();
-     await writeResultsToMongoSync(dbOutput, mongoDBName, mongoDBCollectionHist);
+      await writeResultsToMongoSync(dbOutput, mongoDBName, mongoDBCollectionHist);
     }
   }
   // Check for case of Buy at Exchange1 and Sell at Exchange2
@@ -149,6 +152,11 @@ async function outputArbResults(exch1BuyAt: number, exch1SellAt: number, exch1Na
     dbOutput.gainLoss = "GAIN";
     dbOutput.tradeInstructions = `${ccyPair} BUY at ${exch1Name} for ${exch1BuyAt.toFixed(9)}. SELL ${exch2Name} for ${exch2SellAt.toFixed(9)} Gain ${arbPercent.toFixed(6)}%`;
     console.log(dbOutput.gainLoss, ": ", dbOutput.tradeInstructions);
+    // Experimental code
+    if(orderBookOn) {
+      await outputOrderBook(exch1Name, ccyPair, "buy");
+      await outputOrderBook(exch2Name, ccyPair, "sell");
+    }
     if (arbPercent > arbEmailThresholdPercent) {
       dbOutput.urgentTrade = true;
       SendMessage(`${ccyPair}: BUY at ${exch1Name} and SELL at ${exch2Name}`, dbOutput.tradeInstructions);
@@ -176,6 +184,29 @@ async function outputArbResults(exch1BuyAt: number, exch1SellAt: number, exch1Na
   }
 }
 
+async function outputOrderBook(exchangeName: string, ccyPair: string, exch1BuyOrSell: string) {
+
+  if (exchangeName==="Poloniex") {
+    const orderBook = await getExchangeMktDepth("poloniex", ccyPair);
+    let exchangeData = JSON.parse(orderBook.exchangeData);
+    let mktSide = (exch1BuyOrSell==="buy") ? "asks": "bids";
+    let orders: Array<any> = exchangeData[mktSide];
+    orders.forEach((value) => {
+      console.log(`${exchangeName} ${ccyPair} price: ${value[0]} size: ${value[1]}`);
+    });
+    console.log(`poloniex: ${ccyPair} ${exchangeData["asks"]}`);
+  }
+  else if (exchangeName==="Bittrex"){
+    const orderBook = await getExchangeMktDepth("bittrex", bittrexMktFromPoloName(ccyPair));
+    let exchangeData = JSON.parse(orderBook.exchangeData);
+    let mktSide = (exch1BuyOrSell==="buy") ? "sell": "buy";
+    let orders: Array<any> = exchangeData["result"][mktSide];
+    orders.forEach((value, idx) => {
+      console.log(`bittrex: ${ccyPair} ${value.Rate} ${value.Quantity}`);
+    });
+  }
+}
+
 /* poloMktFromBittrexName
  * desc: Converts a Bittrex crypto currency pair into the Poloniex pair.
  */
@@ -185,6 +216,18 @@ function poloMktFromBittrexName(bittrexMktName: string): string {
   if(bittrexMktName==="USDT-XLM")
     return("USDT_STR");    
   return(bittrexMktName.replace("-", "_"));
+}
+
+
+/* bittrexMktFromPoloName
+ * desc: Converts a Bittrex crypto currency pair into the Poloniex pair.
+ */
+function bittrexMktFromPoloName(poloMktName: string): string {
+  if(poloMktName==="BTC_STR")
+    return("BTC-XLM");
+  if(poloMktName==="USDT_STR")
+    return("USDT-XLM");    
+  return(poloMktName.replace("_","-"));
 }
 
 /* compareAllPoloniexHitbtc
@@ -438,5 +481,54 @@ async function internalCompareForYobit(mktData : any, yobitMarkets : Array<strin
   }
 }
 
+function compareAllPoloniexBinance(poloniexData: any, binanceData: any) {
+
+  // Array of strings containing the poloniex markets to exclude from the compare
+  const excludeList:Array<string> = ["BTC_BCN"];
+  const poloJSON = JSON.parse(poloniexData.exchangeData);
+  const binanceJSON = JSON.parse(binanceData.exchangeData);
+  binanceJSON.forEach( (binanceElement: any) => {
+    const poloTicker = getPoloTickerFromBinance(binanceElement.symbol);
+    if(poloJSON[poloTicker] && excludeList.indexOf(poloTicker)===-1) {
+      comparePoloniexBinanceMktElement(poloJSON[poloTicker], binanceElement, poloTicker, new Date());
+   }
+  });
+}
+
+function getPoloTickerFromBinance(binanceTicker : string): string {
+
+  // Special cases
+  if(binanceTicker==="XLMBTC")
+    return("BTC_STR");
+  if(binanceTicker==="XLMETH")
+    return("ETH_STR");     
+  let poloTicker = "";
+  const baseTickers = ["BTC", "ETH", "USDC", "USDT"];
+  for(let baseIdx = 0; baseIdx<baseTickers.length; baseIdx++) {
+    const baseTickerFound = binanceTicker.search(baseTickers[baseIdx]);
+    if (baseTickerFound >= 2) {
+      const secondaryTicker = binanceTicker.slice(0, baseTickerFound);
+      poloTicker = `${baseTickers[baseIdx]}_${secondaryTicker}`;
+      break;
+    }  
+  }
+  return(poloTicker);
+}
+
+
+/* comparePoloniexBinanceMktElement
+ * desc: Pulls out the buy and sell prices for a single currency pair for Poloniex and Yobit.
+ *       Forwards this to the output method to record the arbitrage results.
+ */
+function comparePoloniexBinanceMktElement(poloMktElement: any, binanceMktElement: any, poloMktName: any, reportingTimestamp: Date) {
+
+  let poloBuyAt = +poloMktElement.lowestAsk;
+  let poloSellAt = +poloMktElement.highestBid;
+  let binanceSellAt = +binanceMktElement.bidPrice;
+  let binanceBuyAt = +binanceMktElement.askPrice;
+  outputArbResults(poloBuyAt, poloSellAt, "Poloniex", binanceSellAt, binanceBuyAt, "Binance", poloMktName, reportingTimestamp);
+}
+
+
 export {comparePoloniexCoinbase, compareAllPoloniexBittrex, compareAllPoloniexHitbtc, compareAllBittrexHitbtc,
-  compareAllPoloniexYobit, internalCompareForYobit};
+  compareAllPoloniexYobit, internalCompareForYobit, compareAllPoloniexBinance};

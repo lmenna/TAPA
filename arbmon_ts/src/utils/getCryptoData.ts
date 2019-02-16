@@ -1,3 +1,5 @@
+import { isRegExp } from "util";
+
 /* getCryptoData.ts
  * desc: Routines used to query crypto exchanges for data over their JSON interface.
  */
@@ -5,16 +7,25 @@ var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 
 const exchangeQueries: any = {
   poloniex: { 
-    mktUrl: "https://poloniex.com/public?command=returnTicker"
+    mktUrl: "https://poloniex.com/public?command=returnTicker",
+    // For Poloniex order book replace %PAIR% with a ccy pair like BTC_ETH, %DEPTH% with an integer like 5.
+    orderBookUrl: "https://poloniex.com/public?command=returnOrderBook&currencyPair=%PAIR%&depth=%DEPTH%"
   },
   coinbase: { 
     mktUrl: "https://api.pro.coinbase.com/products" 
   },
   bittrex: { 
-    mktUrl: "https://bittrex.com/api/v1.1/public/getmarketsummaries" 
+    mktUrl: "https://bittrex.com/api/v1.1/public/getmarketsummaries",
+    // For the Bittrex order book replace %PAIR% with a ccy pair like BTC-ETH.  Depth is always ALL for Bittrex.
+    orderBookUrl: "https://api.bittrex.com/api/v1.1/public/getorderbook?market=%PAIR%&type=both"
   },
   hitbtc: { 
-    mktUrl: "https://api.hitbtc.com/api/2/public/ticker" 
+    mktUrl: "https://api.hitbtc.com/api/2/public/ticker",
+    // For the Hitbtc orderbook, replace %PAIR% with a ccy pair like ETHBTC. Depth is always ALL for Hitbtc. 
+    orderBookUrl: "https://api.hitbtc.com/api/2/public/orderbook/%PAIR%"
+  },
+  binance: { 
+    mktUrl: "https://api.binance.com/api/v3/ticker/bookTicker",
   },
   yobit: { 
     mktUrl: "https://yobit.net/api/3/ticker/" 
@@ -32,6 +43,26 @@ function getExchangeMkt(Exchange: string) {
   }
   else {
     return new Promise( (resolve, reject) => reject(`${Exchange} not configured for market data.`));
+  }
+}
+
+/* getExchangeMktDepth
+ * desc: Use the exchangeQueries object to determine which url to query to retrieve market data.
+ *       Allows outside callers to specify the data to retrieve by name without needed to know
+ *       the details of how to query the exchanges.
+ */
+function getExchangeMktDepth(exchange: string, ccyPair: string, depth : number = 5) {
+  if(exchangeQueries[exchange] && exchangeQueries[exchange]["orderBookUrl"]) {
+      let mktDepthURL = exchangeQueries[exchange].orderBookUrl;
+      mktDepthURL = mktDepthURL.replace("%PAIR%", ccyPair);
+      if(exchange==="poloniex") {
+        mktDepthURL = mktDepthURL.replace("%DEPTH%", depth);
+      }
+      console.log("Get orderbook from:", mktDepthURL);
+      return(getDataFromURL(mktDepthURL));
+  }
+  else {
+    return new Promise( (resolve, reject) => reject(`${exchange} not configured for market depth.`));
   }
 }
 
@@ -72,4 +103,4 @@ function getDataFromURL(_url: string) : any {
   });
 }
 
-export {getExchangeMkt, getDataFromURL};
+export {getExchangeMkt, getExchangeMktDepth, getDataFromURL};

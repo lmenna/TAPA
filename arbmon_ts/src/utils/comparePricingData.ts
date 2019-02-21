@@ -484,7 +484,7 @@ async function internalCompareForYobit(mktData : any, yobitMarkets : Array<strin
 function compareAllPoloniexBinance(poloniexData: any, binanceData: any) {
 
   // Array of strings containing the poloniex markets to exclude from the compare
-  const excludeList:Array<string> = ["BTC_BCN"];
+  const excludeList:Array<string> = ["BTC_BCN", "BTC_GAS"];
   const poloJSON = JSON.parse(poloniexData.exchangeData);
   const binanceJSON = JSON.parse(binanceData.exchangeData);
   binanceJSON.forEach( (binanceElement: any) => {
